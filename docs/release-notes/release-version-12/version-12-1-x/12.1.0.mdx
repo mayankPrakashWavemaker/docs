@@ -1,0 +1,134 @@
+---
+last_update: { author: 'Mayank Prakash' }
+hide_table_of_contents: true
+hide_title: true
+
+---
+
+<Common.WaveMakerAIHeading scale={1.5} />
+
+WaveMaker announces the release of WaveMaker AI 12.1.0. Overview\...
+
+For details about the technology stack upgrades, refer to [Technology Stack](/tech-stack?v=12-1-0).
+
+## 12.1.0
+
+*Release date: October 19, 2026*
+
+<ReleaseNotesTabs>
+  <TabItem name="Features">
+    <Accordian title="User Interface">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Platform">
+      - ### Shared sign-in session with external websites <Pill type="mobile" />
+
+        React Native apps and external websites that use the same identity provider now share a single sign-in session through the system browser, so users who sign in to the app stay signed in on the website.
+
+        Set `authMode` to `auth_session` in `browserConfig` of `wm_rn_config`.
+
+      - ### Multiple environment profiles in mobile builds <Pill type="mobile" />
+
+        A single mobile app build can now carry multiple environment profiles, such as stage, test, and production, and switch between them at runtime without a rebuild or reinstall.
+
+        Select the profiles to bundle in `Enabled Profile(s)` and set the first-launch profile in `Default Profile` under Build Preferences → Application Properties.
+
+      - ### Media query support in style classes <Pill type="mobile" />
+
+        Style classes in React Native apps now support media queries, so you can define base styles and override them for different device sizes, such as phone and tablet, using project-wide screen width breakpoints.
+    </Accordian>
+
+    <Accordian title="Product Ecosystem">
+      {/* Content */}
+    </Accordian>
+  </TabItem>
+
+  <TabItem name="Enhancements">
+    <Accordian title="User Interface">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Platform">
+      - ### Entry animation inside bottom sheets <Pill type="mobile" />
+
+        Accordions, panels, and other widgets loaded inside a bottom sheet now animate in from the bottom, matching standard bottom sheet behavior on mobile.
+
+      - ### Ellipsis modes for the Label widget <Pill type="mobile" />
+
+        The Label widget now supports ellipsis at the start, middle, or end of truncated text in React Native apps.
+
+        Set `ellipsizemode` to `head`, `middle`, or `tail`.
+
+      - ### Global Page Cache setting <Pill type="mobile" />
+
+        Enable or disable Page Cache for every page in an application from a single application-level setting, instead of updating each page individually.
+
+      - ### Swipe events on page content <Pill type="mobile" />
+
+        Fixed the `onSwipeLeft` and `onSwipeRight` events on the page content component not firing when a user swipes left or right.
+
+      - ### Custom page transition animations <Pill type="mobile" />
+
+        Customize the animation used when navigating between pages, such as fade, slide, reveal, or scale, with a single app-level setting that applies to every page navigation.
+
+        Set `pageTransitionAnimation` in `wm_rn_config.json`, for example `slide_from_right`.
+
+      - ### Custom Metro configuration <Pill type="mobile" />
+
+        Supply additional Metro settings for React Native apps, which WaveMaker merges into the default Metro configuration at build time.
+
+        Create `custommetro.config.js` in `src/main/webapp` and export an async function that modifies and returns the base `config`.
+
+      - ### Custom providers for React Native apps <Pill type="mobile" />
+
+        Wrap your React Native app with custom providers, so you can use libraries that need a top-level provider, such as `QueryClientProvider` from TanStack Query.
+
+        Create `customapp.wrapper.js` in `src/main/webapp` and export a default component that wraps its `children` with your providers.
+    </Accordian>
+
+    <Accordian title="Product Ecosystem">
+      {/* Content */}
+    </Accordian>
+  </TabItem>
+
+  <TabItem name="Bug Fixes">
+    <Accordian title="User Interface">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Platform">
+      - ### Keyboard next action across input fields <Pill type="mobile" />
+
+        Fixed the keyboard's next action so users can move to the next input field and keep entering values without dismissing the keyboard.
+
+      - ### Date and time picker buttons on Android <Pill type="mobile" />
+
+        Fixed the Select and Cancel buttons on the Date and Time pickers not responding to taps on Android when the widget is used inside a form.
+
+      - ### Canvas elements overflowing with vw and vh <Pill type="mobile" />
+
+        Fixed elements overflowing the mobile canvas, and becoming invisible or untappable, when sized with `vw` and `vh`, which no longer affect the mobile canvas.
+
+      - ### Security updates for lodash and debug <Pill type="mobile" />
+
+        Upgraded the `lodash` library to 4.18.1 and the `debug` library to 4.4.3 in React Native apps to address security vulnerabilities in the earlier versions.
+    </Accordian>
+
+    <Accordian title="Product Ecosystem">
+      {/* Content */}
+    </Accordian>
+  </TabItem>
+</ReleaseNotesTabs>
