@@ -118,7 +118,21 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
   <TabItem name="Bug Fixes">
     <Accordian title="User Interface">
-      {/* Content */}
+      - ### Read-only Chips field displays as text <Pill type="web" /> <Pill type="angular" />
+
+        Fixed a Chips field in a read-only Live Form displaying its values as a plain string instead of as chips in Angular apps.
+
+      - ### Minimum characters property on Chips widget <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the `minchars` property on the Chips widget being ignored, so suggestions appear only after the user types the minimum number of characters in Angular apps.
+
+      - ### Live Filter resets time to zero <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the Live Filter intermittently resetting the time to 00:00 when a user first enters a value in the time dropdown in Angular apps.
+
+      - ### Widget accessibility fixes <Pill type="web" /> <Pill type="angular" />
+
+        Fixed accessibility issues in the Table, Search, and Breadcrumb widgets in Angular apps.
     </Accordian>
 
     <Accordian title="Backend">
