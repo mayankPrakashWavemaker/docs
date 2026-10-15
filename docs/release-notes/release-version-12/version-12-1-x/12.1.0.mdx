@@ -133,6 +133,18 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### Widget accessibility fixes <Pill type="web" /> <Pill type="angular" />
 
         Fixed accessibility issues in the Table, Search, and Breadcrumb widgets in Angular apps.
+
+      - ### Main page layout breaks after switching from a Partial dialog <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the Main page canvas rendering a distorted layout after switching from a Dialog widget opened in a Partial page in Studio.
+
+      - ### Hidden widgets in a Dialog appear after switching pages <Pill type="web" /> <Pill type="angular" />
+
+        Fixed an issue where widgets inside a Dialog with the **Show** property set to `false` became visible on the canvas after switching pages and returning to the original page in Studio, even when **Show Hidden Elements** was disabled. These widgets now remain hidden across page switches.
+
+      - ### PATCH API path parameters missing in variable inputs <Pill type="web" /> <Pill type="angular" />
+
+        Fixed path parameters not appearing as inputs in the Data tab of a Web Service variable for an imported PATCH API.
     </Accordian>
 
     <Accordian title="Backend">
