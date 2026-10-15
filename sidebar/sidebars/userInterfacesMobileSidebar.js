@@ -419,6 +419,10 @@ export default [
         type: 'doc',
         id: 'user-interfaces/mobile/device-capabilities-mobile/third-party-expo-plugins',
       },
+      {
+        type: 'doc',
+        id: 'user-interfaces/mobile/device-capabilities-mobile/custom-app-wrapper',
+      },
       // {
       //   type: 'doc',
       //   id: 'user-interfaces/mobile/device-capabilities-mobile/offline-support',
