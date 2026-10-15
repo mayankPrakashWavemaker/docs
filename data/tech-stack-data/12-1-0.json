@@ -21,7 +21,7 @@
           "name": "ngx-bootstrap",
           "description": "Native Angular directives for Bootstrap.",
           "link": "https://valor-software.com/ngx-bootstrap/",
-          "version": "21.2.0"
+          "version": "22.0.0"
         },
         {
           "name": "FullCalendar",
@@ -73,7 +73,7 @@
           "name": "Node.js",
           "description": "JavaScript runtime environment.",
           "link": "https://nodejs.org/",
-          "version": "22.18.0"
+          "version": "22.22.3"
         },
         {
           "name": "Java (JDK)",
