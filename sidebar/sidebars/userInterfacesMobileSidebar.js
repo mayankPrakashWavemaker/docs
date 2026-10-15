@@ -177,6 +177,19 @@ export default [
           },
         ],
       },
+      {
+        type: 'category',
+        label: 'App configuration',
+        collapsible: true,
+        collapsed: true,
+        items: [
+          {
+            type: 'doc',
+            id: 'user-interfaces/mobile/develop/app-configuration/multi-profile-environments',
+            label: 'Multi-profile environments',
+          },
+        ],
+      },
       // {
       //   type: 'category',
       //   label: 'Component behaviour & methods',
