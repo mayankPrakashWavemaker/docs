@@ -41,6 +41,24 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### Media query support in style classes <Pill type="mobile" />
 
         Style classes in React Native apps now support media queries, so you can define base styles and override them for different device sizes, such as phone and tablet, using project-wide screen width breakpoints.
+
+      - ### Pull-to-refresh support <Pill type="mobile" />
+
+        Users can now swipe down on a page to refresh its content in React Native apps, with an optional custom Lottie animation as the refresh indicator and an `onPulltoRefresh` event for custom refresh logic.
+
+        Set `pulltorefresh` to `true` in `wm_rn_config.json` to enable it for the app, and set the `pulltorefresh` property on the page content widget to turn it off for a page.
+
+      - ### Custom Metro configuration <Pill type="mobile" />
+
+        Supply additional Metro settings for React Native apps, which WaveMaker merges into the default Metro configuration at build time.
+
+        Create `custommetro.config.js` in `src/main/webapp` and export an async function that modifies and returns the base `config`.
+
+      - ### Custom providers for React Native apps <Pill type="mobile" />
+
+        Wrap your React Native app with custom providers, so you can use libraries that need a top-level provider, such as `QueryClientProvider` from TanStack Query.
+
+        Create `customapp.wrapper.js` in `src/main/webapp` and export a default component that wraps its `children` with your providers.
     </Accordian>
 
     <Accordian title="Product Ecosystem">
@@ -82,17 +100,11 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
         Set `pageTransitionAnimation` in `wm_rn_config.json`, for example `slide_from_right`.
 
-      - ### Custom Metro configuration <Pill type="mobile" />
+      - ### Background image blur effect <Pill type="mobile" />
 
-        Supply additional Metro settings for React Native apps, which WaveMaker merges into the default Metro configuration at build time.
+        Apply a blur effect to a widget's background image in React Native apps, with an intensity from 0 to 100, without blurring the widget's content.
 
-        Create `custommetro.config.js` in `src/main/webapp` and export an async function that modifies and returns the base `config`.
-
-      - ### Custom providers for React Native apps <Pill type="mobile" />
-
-        Wrap your React Native app with custom providers, so you can use libraries that need a top-level provider, such as `QueryClientProvider` from TanStack Query.
-
-        Create `customapp.wrapper.js` in `src/main/webapp` and export a default component that wraps its `children` with your providers.
+        Set the `backdrop-filter` style property to a blur value, for example `backdrop-filter: blur(10px)`.
     </Accordian>
 
     <Accordian title="Product Ecosystem">
@@ -125,6 +137,18 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### Security updates for lodash and debug <Pill type="mobile" />
 
         Upgraded the `lodash` library to 4.18.1 and the `debug` library to 4.4.3 in React Native apps to address security vulnerabilities in the earlier versions.
+
+      - ### Validation message layout shift <Pill type="mobile" />
+
+        Fixed an empty validation message container shifting the form layout when a field has validation but no `validationmessage`.
+
+      - ### Form field readonly property <Pill type="mobile" />
+
+        Fixed the Form Field `readonly` property so a read-only field stays non-editable at runtime, regardless of the form's insert or edit mode.
+
+      - ### Bottom sheet detaching on Android <Pill type="mobile" />
+
+        Fixed the bottom sheet detaching from the bottom of the screen on Android, so it stays anchored when the keyboard opens and closes.
     </Accordian>
 
     <Accordian title="Product Ecosystem">
