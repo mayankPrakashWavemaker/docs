@@ -422,6 +422,7 @@ export default [
       {
         type: 'doc',
         id: 'user-interfaces/mobile/device-capabilities-mobile/custom-metro-config',
+        id: 'user-interfaces/mobile/device-capabilities-mobile/custom-app-wrapper',
       },
       // {
       //   type: 'doc',
