@@ -114,9 +114,17 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
         Set the `backdrop-filter` style property to a blur value, for example `backdrop-filter: blur(10px)`.
 
-      - ### Component properties aligned with Angular apps <Pill type="web" />
+      - ### React App Component properties aligned with Angular apps <Pill type="web" />
 
         Width and height, Text, Label, Icon, HTML, Iframe, and Chips components in React apps now handle their properties and accessibility attributes the same way as in Angular apps.
+
+      - ### Global Page Cache setting <Pill type="mobile" />
+
+        Enable or disable Page Cache for every page in an application from a single application-level setting, instead of updating each page individually.
+
+      - ### Two-way binding for more form components <Pill type="web" />
+
+        Checkbox, Checkbox Set, Switch, Currency, and Radioset components in React apps now support two-way binding, matching Angular apps.
     </Accordian>
 
     <Accordian title="Backend">
@@ -127,14 +135,6 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### Removed deprecated agents for new chats
 
         WaveMaker Agent, WaveMaker UI Expert, and Backend Expert Agent are deprecated and no longer offered when you start a new chat, which now starts with WaveMaker Assistant. Chats you already started with them can continue.
-
-      - ### Global Page Cache setting <Pill type="mobile" />
-
-        Enable or disable Page Cache for every page in an application from a single application-level setting, instead of updating each page individually.
-
-      - ### Two-way binding for more form components <Pill type="web" />
-
-        Checkbox, Checkbox Set, Switch, Currency, and Radioset components in React apps now support two-way binding, matching Angular apps.
     </Accordian>
 
     <Accordian title="Product Ecosystem">
@@ -199,76 +199,48 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### PATCH API path parameters missing in variable inputs <Pill type="web" /> <Pill type="angular" />
 
         Fixed path parameters not appearing as inputs in the Data tab of a Web Service variable for an imported PATCH API.
-    </Accordian>
 
-    <Accordian title="Backend">
-      {/* Content */}
-    </Accordian>
+      - ### Partial fixes <Pill type="web" />
 
-    <Accordian title="Platform">
-      - ### Page reloads when a deferred partial loads <Pill type="web" />
+        Fixed the following issues with Partial pages in React apps:
 
-        Fixed the whole page showing its loader, instead of only the partial, when a container hosting a partial with `deferload` enabled becomes visible for the first time in React apps.
+        - The whole page showing its loader, instead of only the partial, when a container hosting a partial with `deferload` enabled becomes visible for the first time.
+        - Partial page parameters not being available when the partial first renders.
+        - Scripts in a partial failing to access components on the page that hosts the partial.
 
-      - ### Partial parameters not ready on first render <Pill type="web" />
+      - ### Table and pagination fixes <Pill type="web" />
 
-        Fixed partial page parameters not being available when the partial first renders in React apps.
+        Fixed the following issues with Table and List components in React apps:
 
-      - ### Partial scripts not reaching the host page <Pill type="web" />
+        - Pagination not working in Table and List: page links now navigate, the current page is highlighted, `maxsize` and page size changes apply, and the pagination bar stays aligned.
+        - Rows in a Table with multiple selection not getting selected when clicked.
+        - A component in a Table column, such as a toggle, changing the value in every row instead of only its own row.
+        - A Table showing a blank page instead of its records when reloaded after a search that returned no results.
 
-        Fixed scripts in a partial failing to access components on the page that hosts the partial in React apps.
+      - ### Form fixes <Pill type="web" />
 
-      - ### Pagination fixes in Table and List <Pill type="web" />
+        Fixed the following issues with forms in React apps:
 
-        Fixed pagination in Table and List components so page links navigate, the current page is highlighted, `maxsize` and page size changes apply, and the pagination bar stays aligned in React apps.
+        - Form fields being editable in view mode and staying disabled after switching the form to edit mode.
+        - Required-field validation keeping a field, such as a Select, invalid after a value is entered, which left Save and Submit disabled.
+        - Select fields not showing their saved values when the form opens for editing.
+        - Fields inside repeated form items not updating when another field in the same item changes value.
+        - A script error when a form submit handler reads the form's `valid` state.
 
-      - ### Table rows not selectable <Pill type="web" />
+      - ### Dialog fixes <Pill type="web" />
 
-        Fixed rows in a Table with multiple selection not getting selected when clicked in React apps.
+        Fixed the following issues with the Dialog component in React apps:
 
-      - ### Table column components updating every row <Pill type="web" />
-
-        Fixed a component in a Table column, such as a toggle, changing the value in every row instead of only its own row in React apps.
-
-      - ### Table not reloading after an empty search <Pill type="web" />
-
-        Fixed a Table showing a blank page instead of its records when reloaded after a search that returned no results in React apps.
-
-      - ### Form fields in view and edit mode <Pill type="web" />
-
-        Fixed form fields being editable in view mode and staying disabled after switching the form to edit mode in React apps.
-
-      - ### Required fields blocking form submission <Pill type="web" />
-
-        Fixed required-field validation keeping a field, such as a Select, invalid after a value is entered, which left Save and Submit disabled in React apps.
-
-      - ### Saved values not shown in edit forms <Pill type="web" />
-
-        Fixed Select fields in a form not showing their saved values when the form opens for editing in React apps.
-
-      - ### Form fields in repeated items not updating <Pill type="web" />
-
-        Fixed fields inside repeated form items not updating when another field in the same item changes value in React apps.
-
-      - ### Dialog layout broken by overlay styles <Pill type="web" />
-
-        Fixed Dialog styles being applied to the background overlay, which broke the dialog's layout in React apps.
-
-      - ### Dialog components keep values after reopening <Pill type="web" />
-
-        Fixed components inside a Dialog, such as File Upload, keeping their previous values after the dialog is closed and opened again in React apps.
+        - Dialog styles being applied to the background overlay, which broke the dialog's layout.
+        - Components inside a Dialog, such as File Upload, keeping their previous values after the dialog is closed and opened again.
 
       - ### Chips selection and boolean properties <Pill type="web" />
 
         Fixed the Chips component not selecting values, and boolean properties set to the string "false" being treated as true, in React apps.
 
-      - ### Actions on components with underscores in names <Pill type="web" />
+      - ### Checkboxes not responding to selection <Pill type="web" />
 
-        Fixed actions, such as a button click, not working on components whose names contain an underscore in React apps.
-
-      - ### Selection not updating dependent content <Pill type="web" />
-
-        Fixed selecting an item not updating labels and counts that depend on the selection in React apps.
+        Fixed checkboxes rendering incorrectly and not responding to select or unselect in React apps.
 
       - ### Search component dropdown selection <Pill type="web" />
 
@@ -278,29 +250,36 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
         Fixed the Button `onClick` event not firing when a parent element stops event propagation in React apps.
 
-      - ### Spinner missing for a variable's spinner context <Pill type="web" />
-
-        Fixed the loading spinner not appearing over the component set as a variable's spinner context in React apps.
-
-      - ### Checkboxes not responding to selection <Pill type="web" />
-
-        Fixed checkboxes rendering incorrectly and not responding to select or unselect in React apps.
-
-      - ### Static service variable inputs not sent <Pill type="web" />
-
-        Fixed static values bound to a service variable's inputs not being sent with the request in React apps.
-
       - ### Menu and Nav opening on hover <Pill type="web" />
 
         Fixed Menu and Nav components opening on hover when `showonhover` is turned off in React apps.
 
-      - ### Script error when reading form validity <Pill type="web" />
+      - ### Variable fixes <Pill type="web" />
 
-        Fixed a script error when a form submit handler reads the form's `valid` state in React apps.
+        Fixed the following issues with variables in React apps:
+
+        - The loading spinner not appearing over the component set as a variable's spinner context.
+        - Static values bound to a service variable's inputs not being sent with the request.
+
+      - ### Actions on components with underscores in names <Pill type="web" />
+
+        Fixed actions, such as a button click, not working on components whose names contain an underscore in React apps.
+
+      - ### Selection not updating dependent content <Pill type="web" />
+
+        Fixed selecting an item not updating labels and counts that depend on the selection in React apps.
 
       - ### Production app crash on authentication state <Pill type="web" />
 
         Fixed React apps crashing in production builds when a page reads the logged-in user's state.
+    </Accordian>
+
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Platform">
+      {/* Content */}
     </Accordian>
 
     <Accordian title="Product Ecosystem">
