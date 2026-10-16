@@ -193,6 +193,11 @@ export default [
             id: 'user-interfaces/mobile/develop/app-configuration/multi-profile-environments',
             label: 'Multi-profile environments',
           },
+          {
+            type: 'doc',
+            id: 'user-interfaces/mobile/develop/app-configuration/pull-to-refresh',
+            label: 'Pull to refresh',
+          },
         ],
       },
       // {
@@ -440,6 +445,9 @@ export default [
       {
         type: 'doc',
         id: 'user-interfaces/mobile/device-capabilities-mobile/custom-metro-config',
+      },
+      {
+        type: 'doc',
         id: 'user-interfaces/mobile/device-capabilities-mobile/custom-app-wrapper',
       },
       // {
