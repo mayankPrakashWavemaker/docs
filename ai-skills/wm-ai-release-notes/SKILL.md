@@ -73,16 +73,17 @@ When you create a new release notes file from `assets/release-notes-template.mdx
 
 ## Release overview line
 
-Every release notes file opens with an announcement line that ends in a one-sentence overview of the release:
+Every release notes file opens with a one-sentence overview of the release:
 
 ```mdx
-WaveMaker announces the release of WaveMaker AI 12.0.2. This release adds React Native extensibility through custom app wrappers and Metro configuration, improves widget accessibility, and fixes a broad set of React app issues.
+WaveMaker AI 12.0.2 adds React Native extensibility through custom app wrappers and Metro configuration, improves widget accessibility, and fixes a broad set of React app issues.
 ```
 
 A new file generated from the template ships with a literal `Overview\...` placeholder. **Replace it before the file is done** — it is not optional, and it publishes verbatim if left alone.
 
 Rules:
 
+- Open with the version as the subject (`WaveMaker AI 12.1.0 adds…`). Do not use "WaveMaker announces the release of…" — that wording was for the 12.0.0 major release only, and most releases are not big announcements.
 - One sentence. Name the two or three themes a reader should look forward to, drawn from the entries actually in the file.
 - Derive it from the content — after the entries are written, not before. If the release is mostly fixes, say so.
 - Same style rules as entry bodies: active voice, present tense, no marketing language.
@@ -145,7 +146,7 @@ Edit the release notes file and insert the entry in the correct accordian, maint
 
 Ask if there are more items. When the user is done, run a final scan of the file and flag:
 
-- An unreplaced `Overview\...` placeholder in the opening announcement line.
+- An unreplaced `Overview\...` placeholder in the opening overview line, or an opening that starts with "WaveMaker announces the release of".
 - Body copy longer than one sentence.
 - Relative links that include a `.md` or `.mdx` extension.
 - Relative links where the target file does not exist.
@@ -165,7 +166,7 @@ Ask if there are more items. When the user is done, run a final scan of the file
 
 ## Validation checklist
 
-- [ ] The opening announcement line ends with a one-sentence overview, with no `Overview\...` placeholder left.
+- [ ] The file opens with a one-sentence overview that has the version as its subject, with no `Overview\...` placeholder or "WaveMaker announces the release of" left.
 - [ ] Entry is in the correct tab (Features / Enhancements / Bug Fixes).
 - [ ] Entry is in the correct accordian (User Interface / Backend / Platform / Product Ecosystem).
 - [ ] Title is a `###` heading, 4–7 words.
