@@ -147,7 +147,7 @@ Page.profileSelectChange = function ($event, widget) {
 - The first time the app runs, it opens on `defaultProfile`.
 - When a user switches profiles, the choice is saved on the device. From then on, the app opens on the saved profile until the user switches again.
 
-## Notes and limitations
+## Things to know
 
 - Requests that are already running finish against the endpoint they started with. Only requests made after the switch use the new values.
 - Switching profiles does not sign the user out or end a session. To sign users out when the profile changes, add that logic after `App.setProfile` resolves.
