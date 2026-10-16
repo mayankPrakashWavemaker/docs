@@ -7,7 +7,7 @@ hide_title: true
 
 <Common.WaveMakerAIHeading scale={1.5} />
 
-WaveMaker AI 12.1.0 upgrades Angular apps and Studio to Angular 22, extends React Native apps with shared sign-in sessions and runtime environment profiles, and fixes a broad set of form, table, and partial issues in React apps.
+WaveMaker AI 12.1.0 upgrades Angular apps and Studio to Angular 22, extends React Native apps with shared sign-in sessions and runtime environment profiles.
 
 For details about the technology stack upgrades, refer to [Technology Stack](/tech-stack?v=12-1-0).
 
@@ -199,79 +199,6 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
       - ### PATCH API path parameters missing in variable inputs <Pill type="web" /> <Pill type="angular" />
 
         Fixed path parameters not appearing as inputs in the Data tab of a Web Service variable for an imported PATCH API.
-
-      - ### Partial fixes <Pill type="web" />
-
-        Fixed the following issues with Partial pages in React apps:
-
-        - The whole page showing its loader, instead of only the partial, when a container hosting a partial with `deferload` enabled becomes visible for the first time.
-        - Partial page parameters not being available when the partial first renders.
-        - Scripts in a partial failing to access components on the page that hosts the partial.
-
-      - ### Table and pagination fixes <Pill type="web" />
-
-        Fixed the following issues with Table and List components in React apps:
-
-        - Pagination not working in Table and List: page links now navigate, the current page is highlighted, `maxsize` and page size changes apply, and the pagination bar stays aligned.
-        - Rows in a Table with multiple selection not getting selected when clicked.
-        - A component in a Table column, such as a toggle, changing the value in every row instead of only its own row.
-        - A Table showing a blank page instead of its records when reloaded after a search that returned no results.
-
-      - ### Form fixes <Pill type="web" />
-
-        Fixed the following issues with forms in React apps:
-
-        - Form fields being editable in view mode and staying disabled after switching the form to edit mode.
-        - Required-field validation keeping a field, such as a Select, invalid after a value is entered, which left Save and Submit disabled.
-        - Select fields not showing their saved values when the form opens for editing.
-        - Fields inside repeated form items not updating when another field in the same item changes value.
-        - A script error when a form submit handler reads the form's `valid` state.
-
-      - ### Dialog fixes <Pill type="web" />
-
-        Fixed the following issues with the Dialog component in React apps:
-
-        - Dialog styles being applied to the background overlay, which broke the dialog's layout.
-        - Components inside a Dialog, such as File Upload, keeping their previous values after the dialog is closed and opened again.
-
-      - ### Chips selection and boolean properties <Pill type="web" />
-
-        Fixed the Chips component not selecting values, and boolean properties set to the string "false" being treated as true, in React apps.
-
-      - ### Checkboxes not responding to selection <Pill type="web" />
-
-        Fixed checkboxes rendering incorrectly and not responding to select or unselect in React apps.
-
-      - ### Search component dropdown selection <Pill type="web" />
-
-        Fixed the Search component not selecting a value from its dropdown when used inside dynamic content in React apps.
-
-      - ### Button clicks blocked by parent handlers <Pill type="web" />
-
-        Fixed the Button `onClick` event not firing when a parent element stops event propagation in React apps.
-
-      - ### Menu and Nav opening on hover <Pill type="web" />
-
-        Fixed Menu and Nav components opening on hover when `showonhover` is turned off in React apps.
-
-      - ### Variable fixes <Pill type="web" />
-
-        Fixed the following issues with variables in React apps:
-
-        - The loading spinner not appearing over the component set as a variable's spinner context.
-        - Static values bound to a service variable's inputs not being sent with the request.
-
-      - ### Actions on components with underscores in names <Pill type="web" />
-
-        Fixed actions, such as a button click, not working on components whose names contain an underscore in React apps.
-
-      - ### Selection not updating dependent content <Pill type="web" />
-
-        Fixed selecting an item not updating labels and counts that depend on the selection in React apps.
-
-      - ### Production app crash on authentication state <Pill type="web" />
-
-        Fixed React apps crashing in production builds when a page reads the logged-in user's state.
     </Accordian>
 
     <Accordian title="Backend">
