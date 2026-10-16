@@ -18,7 +18,15 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 <ReleaseNotesTabs>
   <TabItem name="Features">
     <Accordian title="User Interface">
-      {/* Content */}
+      - ### Media query support in style classes <Pill type="mobile" />
+
+        Style classes in React Native apps now support media queries, so you can define base styles and override them for different device sizes, such as phone and tablet, using project-wide screen width breakpoints.
+
+      - ### Pull-to-refresh support <Pill type="mobile" />
+
+        Users can now swipe down on a page to refresh its content in React Native apps, with an optional custom Lottie animation as the refresh indicator and an `onPulltoRefresh` event for custom refresh logic.
+
+        Set `pulltorefresh` to `true` in `wm_rn_config.json` to enable it for the app, and set the `pulltorefresh` property on the page content component to turn it off for a page.
     </Accordian>
 
     <Accordian title="Backend">
@@ -37,16 +45,6 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
         A single mobile app build can now carry multiple environment profiles, such as stage, test, and production, and switch between them at runtime without a rebuild or reinstall.
 
         Select the profiles to bundle in `Enabled Profile(s)` and set the first-launch profile in `Default Profile` under Build Preferences → Application Properties.
-
-      - ### Media query support in style classes <Pill type="mobile" />
-
-        Style classes in React Native apps now support media queries, so you can define base styles and override them for different device sizes, such as phone and tablet, using project-wide screen width breakpoints.
-
-      - ### Pull-to-refresh support <Pill type="mobile" />
-
-        Users can now swipe down on a page to refresh its content in React Native apps, with an optional custom Lottie animation as the refresh indicator and an `onPulltoRefresh` event for custom refresh logic.
-
-        Set `pulltorefresh` to `true` in `wm_rn_config.json` to enable it for the app, and set the `pulltorefresh` property on the page content widget to turn it off for a page.
 
       - ### Custom Metro configuration <Pill type="mobile" />
 
@@ -85,30 +83,16 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
         :::
 
         For the exact versions, see the [12.1.0 technology stack](/tech-stack?v=12-1-0).
-    </Accordian>
-
-    <Accordian title="Backend">
-      {/* Content */}
-    </Accordian>
-
-    <Accordian title="Platform">
-      - ### Deprecated agents hidden for new chats
-
-        WaveMaker Agent, WaveMaker UI Expert, and Backend Expert Agent are deprecated and no longer offered when you start a new chat, which now starts with WaveMaker Assistant. Chats you already started with them can continue.
 
       - ### Entry animation inside bottom sheets <Pill type="mobile" />
 
-        Accordions, panels, and other widgets loaded inside a bottom sheet now animate in from the bottom, matching standard bottom sheet behavior on mobile.
+        Accordions, panels, and other components loaded inside a bottom sheet now animate in from the bottom, matching standard bottom sheet behavior on mobile.
 
-      - ### Ellipsis modes for the Label widget <Pill type="mobile" />
+      - ### Ellipsis modes for the Label component <Pill type="mobile" />
 
-        The Label widget now supports ellipsis at the start, middle, or end of truncated text in React Native apps.
+        The Label component now supports ellipsis at the start, middle, or end of truncated text in React Native apps.
 
         Set `ellipsizemode` to `head`, `middle`, or `tail`.
-
-      - ### Global Page Cache setting <Pill type="mobile" />
-
-        Enable or disable Page Cache for every page in an application from a single application-level setting, instead of updating each page individually.
 
       - ### Swipe events on page content <Pill type="mobile" />
 
@@ -122,17 +106,31 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
       - ### Background image blur effect <Pill type="mobile" />
 
-        Apply a blur effect to a widget's background image in React Native apps, with an intensity from 0 to 100, without blurring the widget's content.
+        Apply a blur effect to a component's background image in React Native apps, with an intensity from 0 to 100, without blurring the component's content.
 
         Set the `backdrop-filter` style property to a blur value, for example `backdrop-filter: blur(10px)`.
 
-      - ### Two-way binding for more form widgets <Pill type="web" />
+      - ### Component properties aligned with Angular apps <Pill type="web" />
 
-        Checkbox, Checkbox Set, Switch, Currency, and Radioset widgets in React apps now support two-way binding, matching Angular apps.
+        Width and height, Text, Label, Icon, HTML, Iframe, and Chips components in React apps now handle their properties and accessibility attributes the same way as in Angular apps.
+    </Accordian>
 
-      - ### Widget properties aligned with Angular apps <Pill type="web" />
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
 
-        Width and height, Text, Label, Icon, HTML, Iframe, and Chips widgets in React apps now handle their properties and accessibility attributes the same way as in Angular apps.
+    <Accordian title="Platform">
+      - ### Removed deprecated agents for new chats
+
+        WaveMaker Agent, WaveMaker UI Expert, and Backend Expert Agent are deprecated and no longer offered when you start a new chat, which now starts with WaveMaker Assistant. Chats you already started with them can continue.
+
+      - ### Global Page Cache setting <Pill type="mobile" />
+
+        Enable or disable Page Cache for every page in an application from a single application-level setting, instead of updating each page individually.
+
+      - ### Two-way binding for more form components <Pill type="web" />
+
+        Checkbox, Checkbox Set, Switch, Currency, and Radioset components in React apps now support two-way binding, matching Angular apps.
     </Accordian>
 
     <Accordian title="Product Ecosystem">
@@ -142,47 +140,13 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
   <TabItem name="Bug Fixes">
     <Accordian title="User Interface">
-      - ### Read-only Chips field displays as text <Pill type="web" /> <Pill type="angular" />
-
-        Fixed a Chips field in a read-only Live Form displaying its values as a plain string instead of as chips in Angular apps.
-
-      - ### Minimum characters property on Chips widget <Pill type="web" /> <Pill type="angular" />
-
-        Fixed the `minchars` property on the Chips widget being ignored, so suggestions appear only after the user types the minimum number of characters in Angular apps.
-
-      - ### Live Filter resets time to zero <Pill type="web" /> <Pill type="angular" />
-
-        Fixed the Live Filter intermittently resetting the time to 00:00 when a user first enters a value in the time dropdown in Angular apps.
-
-      - ### Widget accessibility fixes <Pill type="web" /> <Pill type="angular" />
-
-        Fixed accessibility issues in the Table, Search, and Breadcrumb widgets in Angular apps.
-
-      - ### Main page layout breaks after switching from a Partial dialog <Pill type="web" /> <Pill type="angular" />
-
-        Fixed the Main page canvas rendering a distorted layout after switching from a Dialog widget opened in a Partial page in Studio.
-
-      - ### Hidden widgets in a Dialog appear after switching pages <Pill type="web" /> <Pill type="angular" />
-
-        Fixed an issue where widgets inside a Dialog with the **Show** property set to `false` became visible on the canvas after switching pages and returning to the original page in Studio, even when **Show Hidden Elements** was disabled. These widgets now remain hidden across page switches.
-
-      - ### PATCH API path parameters missing in variable inputs <Pill type="web" /> <Pill type="angular" />
-
-        Fixed path parameters not appearing as inputs in the Data tab of a Web Service variable for an imported PATCH API.
-    </Accordian>
-
-    <Accordian title="Backend">
-      {/* Content */}
-    </Accordian>
-
-    <Accordian title="Platform">
       - ### Keyboard next action across input fields <Pill type="mobile" />
 
         Fixed the keyboard's next action so users can move to the next input field and keep entering values without dismissing the keyboard.
 
       - ### Date and time picker buttons on Android <Pill type="mobile" />
 
-        Fixed the Select and Cancel buttons on the Date and Time pickers not responding to taps on Android when the widget is used inside a form.
+        Fixed the Select and Cancel buttons on the Date and Time pickers not responding to taps on Android when the component is used inside a form.
 
       - ### Canvas elements overflowing with vw and vh <Pill type="mobile" />
 
@@ -204,6 +168,40 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
         Fixed the bottom sheet detaching from the bottom of the screen on Android, so it stays anchored when the keyboard opens and closes.
 
+      - ### Read-only Chips field displays as text <Pill type="web" /> <Pill type="angular" />
+
+        Fixed a Chips field in a read-only Live Form displaying its values as a plain string instead of as chips in Angular apps.
+
+      - ### Minimum characters property on Chips component <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the `minchars` property on the Chips component being ignored, so suggestions appear only after the user types the minimum number of characters in Angular apps.
+
+      - ### Live Filter resets time to zero <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the Live Filter intermittently resetting the time to 00:00 when a user first enters a value in the time dropdown in Angular apps.
+
+      - ### Component accessibility fixes <Pill type="web" /> <Pill type="angular" />
+
+        Fixed accessibility issues in the Table, Search, and Breadcrumb components in Angular apps.
+
+      - ### Main page layout breaks after switching from a Partial dialog <Pill type="web" /> <Pill type="angular" />
+
+        Fixed the Main page canvas rendering a distorted layout after switching from a Dialog component opened in a Partial page in Studio.
+
+      - ### Hidden components in a Dialog appear after switching pages <Pill type="web" /> <Pill type="angular" />
+
+        Fixed an issue where components inside a Dialog with the **Show** property set to `false` became visible on the canvas after switching pages and returning to the original page in Studio, even when **Show Hidden Elements** was disabled. These components now remain hidden across page switches.
+
+      - ### PATCH API path parameters missing in variable inputs <Pill type="web" /> <Pill type="angular" />
+
+        Fixed path parameters not appearing as inputs in the Data tab of a Web Service variable for an imported PATCH API.
+    </Accordian>
+
+    <Accordian title="Backend">
+      {/* Content */}
+    </Accordian>
+
+    <Accordian title="Platform">
       - ### Page reloads when a deferred partial loads <Pill type="web" />
 
         Fixed the whole page showing its loader, instead of only the partial, when a container hosting a partial with `deferload` enabled becomes visible for the first time in React apps.
@@ -214,19 +212,19 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
       - ### Partial scripts not reaching the host page <Pill type="web" />
 
-        Fixed scripts in a partial failing to access widgets on the page that hosts the partial in React apps.
+        Fixed scripts in a partial failing to access components on the page that hosts the partial in React apps.
 
       - ### Pagination fixes in Table and List <Pill type="web" />
 
-        Fixed pagination in Table and List widgets so page links navigate, the current page is highlighted, `maxsize` and page size changes apply, and the pagination bar stays aligned in React apps.
+        Fixed pagination in Table and List components so page links navigate, the current page is highlighted, `maxsize` and page size changes apply, and the pagination bar stays aligned in React apps.
 
       - ### Table rows not selectable <Pill type="web" />
 
         Fixed rows in a Table with multiple selection not getting selected when clicked in React apps.
 
-      - ### Table column widgets updating every row <Pill type="web" />
+      - ### Table column components updating every row <Pill type="web" />
 
-        Fixed a widget in a Table column, such as a toggle, changing the value in every row instead of only its own row in React apps.
+        Fixed a component in a Table column, such as a toggle, changing the value in every row instead of only its own row in React apps.
 
       - ### Table not reloading after an empty search <Pill type="web" />
 
@@ -252,25 +250,25 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
         Fixed Dialog styles being applied to the background overlay, which broke the dialog's layout in React apps.
 
-      - ### Dialog widgets keep values after reopening <Pill type="web" />
+      - ### Dialog components keep values after reopening <Pill type="web" />
 
-        Fixed widgets inside a Dialog, such as File Upload, keeping their previous values after the dialog is closed and opened again in React apps.
+        Fixed components inside a Dialog, such as File Upload, keeping their previous values after the dialog is closed and opened again in React apps.
 
       - ### Chips selection and boolean properties <Pill type="web" />
 
-        Fixed the Chips widget not selecting values, and boolean properties set to the string "false" being treated as true, in React apps.
+        Fixed the Chips component not selecting values, and boolean properties set to the string "false" being treated as true, in React apps.
 
-      - ### Actions on widgets with underscores in names <Pill type="web" />
+      - ### Actions on components with underscores in names <Pill type="web" />
 
-        Fixed actions, such as a button click, not working on widgets whose names contain an underscore in React apps.
+        Fixed actions, such as a button click, not working on components whose names contain an underscore in React apps.
 
       - ### Selection not updating dependent content <Pill type="web" />
 
         Fixed selecting an item not updating labels and counts that depend on the selection in React apps.
 
-      - ### Search widget dropdown selection <Pill type="web" />
+      - ### Search component dropdown selection <Pill type="web" />
 
-        Fixed the Search widget not selecting a value from its dropdown when used inside dynamic content in React apps.
+        Fixed the Search component not selecting a value from its dropdown when used inside dynamic content in React apps.
 
       - ### Button clicks blocked by parent handlers <Pill type="web" />
 
@@ -278,7 +276,7 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
       - ### Spinner missing for a variable's spinner context <Pill type="web" />
 
-        Fixed the loading spinner not appearing over the widget set as a variable's spinner context in React apps.
+        Fixed the loading spinner not appearing over the component set as a variable's spinner context in React apps.
 
       - ### Checkboxes not responding to selection <Pill type="web" />
 
@@ -290,7 +288,7 @@ For details about the technology stack upgrades, refer to [Technology Stack](/te
 
       - ### Menu and Nav opening on hover <Pill type="web" />
 
-        Fixed Menu and Nav widgets opening on hover when `showonhover` is turned off in React apps.
+        Fixed Menu and Nav components opening on hover when `showonhover` is turned off in React apps.
 
       - ### Script error when reading form validity <Pill type="web" />
 
