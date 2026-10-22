@@ -79,6 +79,10 @@ When you create a new release notes file from `assets/release-notes-template.mdx
 4. Do not edit `data/tech-stack-data/versionDataMap.js`. It is gitignored and regenerated from the JSON files by `scripts/gen-tech-stack-versions.js` as part of the build.
 5. Add the new version to the sidebar (`sidebar/sidebars/releaseNotesSidebar.js`).
 
+## Release date
+
+Write the release date in `DD Month YYYY` format, for example `*Release date: 02 November 2026*`. See `references/conventions.md` for the full rule. If the user gives a date in another format, convert it.
+
 ## Release overview line
 
 Every release notes file opens with a one-sentence overview of the release:
