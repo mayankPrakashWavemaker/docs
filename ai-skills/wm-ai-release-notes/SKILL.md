@@ -61,6 +61,14 @@ docs/release-notes/release-version-1/version-1-0-x/1.0.0.mdx
 
 The top-level template used to generate a new file is `assets/release-notes-template.mdx`.
 
+## Branch
+
+All release notes work happens on the single long-lived `release` branch. Do not create a branch per release (for example `release-12-1-1`).
+
+1. Check out `release` and pull the latest: `git checkout release && git pull origin release`. If the current branch is not `release`, tell the user and ask before switching.
+2. Make the release notes, tech stack data, and sidebar changes on `release`.
+3. Push to `release` and open the pull request from it. Do not commit or push to `main` or `prod` directly.
+
 ## Creating a new release
 
 When you create a new release notes file from `assets/release-notes-template.mdx`, create its tech stack data in the same change. The release notes file links to it with `/tech-stack?v=<version-slug>` (for example `?v=12-1-0`), and that link renders nothing without the data file.
