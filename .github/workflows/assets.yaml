@@ -7,16 +7,19 @@ name: Assets
 #      Make `asset-size-check` a required status check on the collection branches; that status is
 #      what blocks merging.
 #
-# Contributions are squash-merged into the collection branches (`release`, `docs-staging`), which are
-# then merged into `main` with a normal merge. The pipeline runs on PRs into the collection branches
-# only. PRs into any other branch, including `main`, are ignored. To add a collection branch, list it
-# in `on.branches` below and in `COLLECTION_BRANCHES` in the "Resolve PR" step, and make sure the
-# branch itself contains this workflow and scripts/assets/ (they are read from the PR's base branch).
+# Contributions are squash-merged into the collection branches (`release`, `docs`), which are then
+# merged into `main` with a normal merge. The pipeline runs automatically on PRs into the collection
+# branches. A PR into any other branch, including `main`, runs only when someone with write access
+# comments `/optimize-assets` on it. To add a collection branch, list it in `on.branches` below and in
+# `COLLECTION_BRANCHES` in the "Resolve PR" step, and make sure the branch itself contains this
+# workflow and scripts/assets/ (they are read from the PR's base branch).
 #
-# When it runs:
+# When it runs on a PR into a collection branch:
 #   - PRs from branches in this repo: every push → optimize + validate.
 #   - PRs from forks: every push → validate only. Someone with write access comments
 #     `/optimize-assets` → optimize + validate. The fork must allow edits by maintainers.
+# The bot never pushes to `main`, `prod`, or a collection branch, so a comment on a PR whose head is
+# one of those (such as a collection branch merging into `main`) does nothing.
 #
 # Assets the contributor already handled with the pre-commit hook (scripts/assets/precommit.mjs) are
 # not optimized again. The hook records optimized, reviewed (kept as is), and failed assets as
@@ -34,7 +37,7 @@ name: Assets
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
-    branches: [release, docs-staging]
+    branches: [release, docs]
   issue_comment:
     types: [created]
 
@@ -64,8 +67,9 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            // Keep in sync with `on.pull_request_target.branches`; also gates /optimize-assets comments.
-            const COLLECTION_BRANCHES = ['release', 'docs-staging'];
+            // Keep in sync with `on.pull_request_target.branches`.
+            const COLLECTION_BRANCHES = ['release', 'docs'];
+            const PROTECTED_BRANCHES = ['main', 'prod', ...COLLECTION_BRANCHES];
             const number = context.payload.pull_request?.number ?? context.payload.issue.number;
             const commented = context.eventName === 'issue_comment';
 
@@ -82,9 +86,14 @@ jobs:
             }
 
             const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
-            if (pr.state !== 'open' || !pr.head.repo || !COLLECTION_BRANCHES.includes(pr.base.ref)) return;
+            if (pr.state !== 'open' || !pr.head.repo) return;
+            // Automatic runs are for the collection branches; any other base needs a comment.
+            if (!commented && !COLLECTION_BRANCHES.includes(pr.base.ref)) return;
 
             const isFork = pr.head.repo.full_name !== `${owner}/${repo}`;
+            if (!isFork && PROTECTED_BRANCHES.includes(pr.head.ref)) {
+              return core.notice(`The bot does not push to ${pr.head.ref}; ignoring.`);
+            }
             let optimize = commented || !isFork;
             let note = '';
             if (optimize && process.env.HAS_BOT_TOKEN !== 'true') {

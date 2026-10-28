@@ -58,15 +58,16 @@ Thank you for your interest in contributing to WaveMaker Documentation! This gui
 
 Work flows through two collection branches into `main`:
 
-| Branch         | Receives                                                |
-| -------------- | ------------------------------------------------------- |
-| `release`      | Content for an upcoming release, such as release notes  |
-| `docs-staging` | All other documentation, blog, and announcement changes |
+| Branch    | Receives                                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------- |
+| `release` | Everything that ships with a release: release notes, tech stack, feature announcements, feature docs, blog posts |
+| `docs`    | Anything we publish outside the release cycle                                                                    |
 
 1. Branch from the collection branch you are targeting, and open your PR against it. Do not open PRs against `main` or `prod`.
 2. PRs into a collection branch are **squash-merged**: one commit per PR, so intermediate commits and uncompressed originals stay out of the shared history.
 3. Collection branches are merged into `main` with a **normal merge commit**, never a squash. A squash would lose the link to the collection branch, and a later revert or follow-up there would not reach `main`.
 4. `main` is merged into `prod` the same way.
+5. Work that needs its own branch for a while uses a temporary `feature/<name>` branch. It is merged into `main` with a normal merge commit, so its full history is kept, and then deleted. The `Assets` workflow doesn't run on these PRs by itself: the pre-commit hook covers contributors, and a maintainer can comment `/optimize-assets` on the PR into `main` to optimize and size-check it.
 
 Maintainers: set the repository's default squash commit message to "Pull request title" (Settings → General → Pull Requests), so the `Assets-*` lines described below don't end up in the shared history.
 
@@ -160,7 +161,7 @@ static/
 
 ### Asset size limits
 
-Every PR into `release` or `docs-staging` runs the `Assets` workflow on the images, GIFs, and videos it adds or changes. It first compresses them in place and commits the result back to the PR branch, keeping each file's name and format. It then checks the final sizes against these limits:
+Every PR into `release` or `docs` runs the `Assets` workflow on the images, GIFs, and videos it adds or changes. It first compresses them in place and commits the result back to the PR branch, keeping each file's name and format. It then checks the final sizes against these limits:
 
 | Type  | Extensions                                        | Limit |
 | ----- | ------------------------------------------------- | ----- |
@@ -188,7 +189,7 @@ To optimize without committing, run `npm run optimize-assets` from the folder th
 
 #### In CI
 
-Optimization runs automatically on PRs from branches in this repo. On PRs from forks, every push is only size-checked; a maintainer comments `/optimize-assets` to optimize it. The workflow posts a before/after table on the PR and sets the `asset-size-check` status, which blocks merging while any asset is over its limit. After the bot commits, pull before you push again. Because PRs are squash-merged, the original uncompressed files never reach the collection branches or `main`.
+Optimization runs automatically on PRs from branches in this repo into `release` or `docs`. On a PR into any other branch, a maintainer comments `/optimize-assets` to run it. On PRs from forks, every push is only size-checked; a maintainer comments `/optimize-assets` to optimize it. The workflow posts a before/after table on the PR and sets the `asset-size-check` status, which blocks merging while any asset is over its limit. After the bot commits, pull before you push again. Because PRs are squash-merged, the original uncompressed files never reach the collection branches or `main`.
 
 ## Writing Guidelines
 
