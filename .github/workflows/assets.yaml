@@ -12,8 +12,14 @@ name: Assets
 # merged into `main` with a normal merge. The pipeline runs automatically on PRs into the collection
 # branches. A PR into any other branch, including `main`, runs only when someone with write access
 # comments `/optimize-assets` on it. To add a collection branch, list it in `on.branches` below and in
-# `COLLECTION_BRANCHES` in the "Resolve PR" step, and make sure the branch itself contains this
-# workflow and scripts/assets/ (they are read from the PR's base branch).
+# `COLLECTION_BRANCHES` in the "Resolve PR" step. GitHub reads this file from the default branch, so
+# that change has to land on `main`.
+#
+# TEMPORARY: the scripts (scripts/assets/ and package.json) are also read from the default branch,
+# so a collection branch doesn't need to contain them while the pipeline is being tested. To go back
+# to reading them from the PR's base branch, set `ref` in "Check out trusted scripts" to
+# `steps.pr.outputs.base_ref` again. Merge `main` into every collection branch first, or PRs into a
+# branch without scripts/assets/ fail with "Validation did not run".
 #
 # When it runs on a PR into a collection branch:
 #   - PRs from branches in this repo: every push → optimize + validate.
@@ -28,7 +34,7 @@ name: Assets
 # content matches an optimized or reviewed trailer are skipped. Size validation covers every asset.
 #
 # It uses pull_request_target so it can comment and set statuses on fork PRs. Scripts come from the
-# base branch and nothing from the PR is executed. Fork media is only decoded after a maintainer
+# default branch (see TEMPORARY above) and nothing from the PR is executed. Fork media is only decoded after a maintainer
 # opts in with the comment.
 #
 # Requires the repo secret ASSET_BOT_TOKEN: a classic PAT (`public_repo` scope) from a bot or
@@ -115,11 +121,12 @@ jobs:
             core.setOutput('head_sha', pr.head.sha);
             core.setOutput('base_ref', pr.base.ref);
 
-      - name: Check out base-branch scripts
+      - name: Check out trusted scripts
         if: steps.pr.outputs.number
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.base_ref }}
+          # TEMPORARY: the default branch, not the PR's base branch (see the header).
+          ref: ${{ github.event.repository.default_branch }}
           path: trusted
           sparse-checkout: scripts/assets
           persist-credentials: false
@@ -130,7 +137,7 @@ jobs:
         with:
           # actions/checkout refuses fork code in a pull_request_target job unless told otherwise.
           # This is safe here: nothing from this checkout is executed. Every script runs from the
-          # base-branch copy in `trusted/`, and the PR's files are only read by git and decoded as
+          # trusted copy in `trusted/`, and the PR's files are only read by git and decoded as
           # media. Keep it that way: never run a script, install, or build from `pr/`.
           allow-unsafe-pr-checkout: true
           repository: ${{ steps.pr.outputs.head_repo }}
@@ -164,7 +171,7 @@ jobs:
           # Skip assets the contributor's pre-commit hook already optimized or reviewed. The hook
           # records that in commit-message trailers, each tied to the file's exact content (blob id),
           # so a changed or unlisted file is still optimized. The trailers are untrusted PR input:
-          # they are parsed in Node by the base branch's script and only yield numbers here.
+          # they are parsed in Node by the trusted script and only yield numbers here.
           # If the scan itself fails, assume there is work: the optimizer then runs, and its own
           # failure shows up in the PR comment instead of optimization silently turning off.
           PENDING=1
@@ -183,7 +190,7 @@ jobs:
         if: steps.scan.outputs.optimize == 'true'
         continue-on-error: true
         run: |
-          # Same optimizer packages and versions as the base branch's devDependencies, installed
+          # Same optimizer packages and versions as the trusted devDependencies, installed
           # on their own instead of the full site dependency tree.
           DEPS=$(node -p "const d = require('./trusted/package.json').devDependencies;
             ['sharp', 'svgo', '@ffmpeg-installer/ffmpeg'].map((n) => n + '@' + d[n]).join(' ')")
