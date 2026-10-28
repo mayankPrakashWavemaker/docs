@@ -3,7 +3,8 @@ name: Assets
 # One pipeline for the images, GIFs, and videos a PR adds or changes:
 #   1. Optimize: compress them in place (same path and format) and commit back to the PR branch.
 #   2. Validate: check the resulting sizes against scripts/assets/config.mjs.
-#   3. Report: comment on the PR and set the `asset-size-check` commit status on the PR head.
+#   3. Report: keep one comment on the PR up to date and set the `asset-size-check` commit status on
+#      the PR head.
 #      Make `asset-size-check` a required status check on the collection branches; that status is
 #      what blocks merging.
 #
@@ -127,6 +128,11 @@ jobs:
         if: steps.pr.outputs.number
         uses: actions/checkout@v4
         with:
+          # actions/checkout refuses fork code in a pull_request_target job unless told otherwise.
+          # This is safe here: nothing from this checkout is executed. Every script runs from the
+          # base-branch copy in `trusted/`, and the PR's files are only read by git and decoded as
+          # media. Keep it that way: never run a script, install, or build from `pr/`.
+          allow-unsafe-pr-checkout: true
           repository: ${{ steps.pr.outputs.head_repo }}
           ref: ${{ steps.pr.outputs.head_ref }}
           token: ${{ steps.pr.outputs.optimize == 'true' && secrets.ASSET_BOT_TOKEN || github.token }}
@@ -291,19 +297,25 @@ jobs:
 
             const optimizeFailed = env.OPTIMIZE === 'true' && !optimized;
             const hasTable = optimized?.length > 0;
-            if (!hasTable && !optimizeFailed && state === 'success' && !env.NOTE && env.COMMENTED !== 'true') return;
 
-            let body = '### Asset pipeline\n\n';
-            if (env.NOTE) body += `> ${env.NOTE}\n\n`;
-            const covered = Number(env.COVERED) || 0;
-            const retried = Number(env.RETRIED) || 0;
-            if (covered)
-              body += `> ${covered} changed asset(s) were already optimized or reviewed locally by the pre-commit hook (recorded in the commit messages), so they were left as is.\n\n`;
-            if (retried && env.OPTIMIZE === 'true')
-              body += `> Local optimization failed for ${retried} asset(s), so they were optimized here instead.\n\n`;
+            // One comment per PR, edited on every run. Only comments the bot itself wrote are reused.
+            const MARKER = '<!-- asset-pipeline-report -->';
+            const OPT_START = '<!-- asset-pipeline-optimization -->';
+            const OPT_END = '<!-- /asset-pipeline-optimization -->';
+            const issue_number = Number(env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(
+              (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(MARKER),
+            );
+            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && env.COMMENTED !== 'true') return;
 
+            // The optimization section changes only when this run optimized (or tried to). Otherwise
+            // keep what the last run wrote, so a later validation-only run doesn't erase the table.
+            let opt = null;
             if (hasTable) {
-              body += '#### Optimization\n\n| File | Before | After |\n|---|---:|---|\n';
+              opt = '#### Optimization\n\n| File | Before | After |\n|---|---:|---|\n';
               for (const r of optimized) {
                 const after = r.error
                   ? `⚠️ failed<br><code>${cell(r.error)}</code>`
@@ -311,25 +323,38 @@ jobs:
                     ? `${fmt(r.after)} (−${Math.round((1 - r.after / r.before) * 100)}%)`
                     : `${fmt(r.after)} (already optimized)`;
                 const before = pushed && r.replaced ? `[${fmt(r.before)}](${originalUrl(r.file)})` : fmt(r.before);
-                body += `| \`${r.file}\` | ${before} | ${after} |\n`;
+                opt += `| \`${r.file}\` | ${before} | ${after} |\n`;
               }
               if (pushed) {
                 const short = (sha) => sha.slice(0, 7);
-                body +=
+                opt +=
                   `\nCommitted as [\`${short(env.BOT_SHA)}\`](${repoUrl}/commit/${env.BOT_SHA}). ` +
                   'Pull before pushing again, and give the optimized media a quick visual check.\n' +
                   `\nOriginals: [\`${short(env.ORIGINAL_SHA)}\`](${repoUrl}/tree/${env.ORIGINAL_SHA}) ` +
                   '(click a "Before" size to open that file). They live only in this PR\'s history, not in the branch it merges into, ' +
                   'and stay available as long as nobody force-pushes over the bot commit.\n';
               } else if (env.PUSH_RESULT === 'failed') {
-                body += '\n⚠️ Could not push: the branch changed during the run. The next push re-runs the pipeline.\n';
+                opt += '\n⚠️ Could not push: the branch changed during the run. The next push re-runs the pipeline.\n';
               }
-              body += '\n';
             } else if (optimizeFailed) {
-              body += `#### Optimization\n\n⚠️ The optimizer could not run. [View logs](${runUrl})\n\n`;
-            } else if (env.COMMENTED === 'true' && env.OPTIMIZE !== 'true' && !env.NOTE) {
-              body += '#### Optimization\n\nNo new or changed assets to optimize.\n\n';
+              opt = `#### Optimization\n\n⚠️ The optimizer could not run. [View logs](${runUrl})\n`;
+            } else if (existing) {
+              const i = existing.body.indexOf(OPT_START);
+              const j = existing.body.indexOf(OPT_END);
+              if (i !== -1 && j > i) opt = existing.body.slice(i + OPT_START.length, j).trim() + '\n';
             }
+            if (!opt && env.COMMENTED === 'true' && env.OPTIMIZE !== 'true' && !env.NOTE)
+              opt = '#### Optimization\n\nNo new or changed assets to optimize.\n';
+
+            let body = `${MARKER}\n### Asset pipeline\n\n`;
+            if (env.NOTE) body += `> ${env.NOTE}\n\n`;
+            const covered = Number(env.COVERED) || 0;
+            const retried = Number(env.RETRIED) || 0;
+            if (covered)
+              body += `> ${covered} changed asset(s) were already optimized or reviewed locally by the pre-commit hook (recorded in the commit messages), so they were left as is.\n\n`;
+            if (retried && env.OPTIMIZE === 'true')
+              body += `> Local optimization failed for ${retried} asset(s), so they were optimized here instead.\n\n`;
+            if (opt) body += `${OPT_START}\n${opt}${OPT_END}\n\n`;
 
             body += '#### Size validation\n\n';
             if (!check) {
@@ -344,5 +369,7 @@ jobs:
                 ? '\nA maintainer can comment `/optimize-assets` to compress these. Anything still over the limit after that must be trimmed (shorter clip, smaller crop, MP4 instead of GIF).\n'
                 : '\nThese are still over the limit after optimization. Trim them (shorter clip, smaller crop, MP4 instead of GIF) and push again.\n';
             }
+            body += `\n<sub>Checked commit ${env.SHA.slice(0, 7)}</sub>\n`;
 
-            await github.rest.issues.createComment({ ...context.repo, issue_number: Number(env.PR_NUMBER), body });
+            if (!existing) await github.rest.issues.createComment({ ...context.repo, issue_number, body });
+            else if (existing.body !== body) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });

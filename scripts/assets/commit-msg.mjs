@@ -7,11 +7,13 @@
 // An entry is written only if its blob id still matches what is staged, so a report left over from
 // an aborted commit can't vouch for different content. On `--amend`, trailers already in the message
 // are kept while they still match the index, and replaced when the report covers the same path.
+// `git commit --amend -m` starts from a new message, and git doesn't tell hooks it is an amend, so
+// HEAD's own trailers are carried over for the files HEAD changed that this commit leaves as they are.
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { gitLiteral, gitPath, repoRoot } from './git.mjs';
+import { gitLiteral, gitPath, gitWith, repoRoot } from './git.mjs';
 import { formatTrailer, parseTrailerLine } from './trailers.mjs';
 
 const messageFile = path.resolve(process.argv[2] ?? '');
@@ -30,9 +32,12 @@ fs.rmSync(reportFile, { force: true });
 const message = fs.readFileSync(messageFile, 'utf8');
 const lines = message.split('\n');
 const existing = lines.map(parseTrailerLine).filter(Boolean);
-if (!report.length && !existing.length) process.exit(0);
+const headTrailers = readHeadTrailers();
+if (!report.length && !existing.length && !headTrailers.length) process.exit(0);
 
-const paths = [...new Set([...report, ...existing].map((e) => e.path))];
+const paths = [
+  ...new Set([...report, ...existing, ...headTrailers].map((e) => e.path)),
+];
 const stagedBlobs = new Map();
 if (paths.length) {
   for (const entry of gitLiteral('ls-files', '-s', '-z', '--', ...paths).split(
@@ -56,17 +61,61 @@ const kept = lines.filter((line) => {
 if (kept.length !== lines.length)
   fs.writeFileSync(messageFile, kept.join('\n'));
 
-if (fresh.length) {
+const present = new Set(
+  kept
+    .map(parseTrailerLine)
+    .filter(Boolean)
+    .map((t) => `${t.blob} ${t.path}`),
+);
+const carried = headTrailers.filter(
+  (t) =>
+    stagedBlobs.get(t.path) === t.blob &&
+    !freshPaths.has(t.path) &&
+    !present.has(`${t.blob} ${t.path}`),
+);
+
+if (fresh.length || carried.length) {
   // interpret-trailers finds the trailer block and ignores the editor's comment and scissors lines.
   execFileSync('git', [
     'interpret-trailers',
     '--in-place',
     '--if-exists',
     'add',
-    ...fresh.flatMap((entry) => ['--trailer', formatTrailer(entry)]),
+    ...[...fresh, ...carried].flatMap((entry) => [
+      '--trailer',
+      formatTrailer(entry),
+    ]),
     messageFile,
   ]);
-  console.error(
-    `assets: recorded ${fresh.length} asset result(s) in the commit message.`,
+  if (fresh.length)
+    console.error(
+      `assets: recorded ${fresh.length} asset result(s) in the commit message.`,
+    );
+}
+
+// Trailers in HEAD's message for files HEAD itself added or changed. Only those qualify, so a normal
+// commit copies the previous commit's trailers once at most, and never keeps copying them forward.
+function readHeadTrailers() {
+  try {
+    gitWith({ stdio: 'ignore' }, 'rev-parse', '-q', '--verify', 'HEAD');
+  } catch {
+    return [];
+  }
+  const changed = new Set(
+    gitLiteral(
+      'diff-tree',
+      '--no-commit-id',
+      '--name-only',
+      '-r',
+      '-z',
+      '--root',
+      'HEAD',
+    )
+      .split('\0')
+      .filter(Boolean),
   );
+  return gitLiteral('log', '-1', '--format=%B', 'HEAD')
+    .split('\n')
+    .map(parseTrailerLine)
+    .filter((t) => t && changed.has(t.path));
 }

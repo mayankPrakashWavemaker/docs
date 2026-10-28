@@ -37,12 +37,10 @@ export function parseTrailerLine(line) {
 export function processedBlobs(range) {
   const done = new Set();
   const failed = new Set();
-  const trailers = git(
-    'log',
-    '--format=%(trailers:only=true,unfold=true)',
-    range,
-  );
-  for (const line of trailers.split('\n')) {
+  // Scan every line of each message, not just its final trailer block: squashing commits locally
+  // leaves earlier commits' trailers in the middle of the combined message.
+  const messages = git('log', '--format=%B', range);
+  for (const line of messages.split('\n')) {
     const trailer = parseTrailerLine(line);
     if (!trailer) continue;
     (trailer.status === 'failed' ? failed : done).add(trailer.blob);

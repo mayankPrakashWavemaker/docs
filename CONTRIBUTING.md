@@ -189,7 +189,7 @@ To optimize without committing, run `npm run optimize-assets` from the folder th
 
 #### In CI
 
-Optimization runs automatically on PRs from branches in this repo into `release` or `docs`. On a PR into any other branch, a maintainer comments `/optimize-assets` to run it. On PRs from forks, every push is only size-checked; a maintainer comments `/optimize-assets` to optimize it. The workflow posts a before/after table on the PR and sets the `asset-size-check` status, which blocks merging while any asset is over its limit. After the bot commits, pull before you push again. Because PRs are squash-merged, the original uncompressed files never reach the collection branches or `main`.
+Optimization runs automatically on PRs from branches in this repo into `release` or `docs`. On a PR into any other branch, a maintainer comments `/optimize-assets` to run it. On PRs from forks, every push is only size-checked; a maintainer comments `/optimize-assets` to optimize it. The workflow keeps one comment on the PR up to date with a before/after table and the size check, and sets the `asset-size-check` status, which blocks merging while any asset is over its limit. After the bot commits, pull before you push again. Because PRs are squash-merged, the original uncompressed files never reach the collection branches or `main`.
 
 ## Writing Guidelines
 
