@@ -281,19 +281,39 @@ jobs:
             const violations = check ? check.assets.filter((a) => !a.ok) : [];
 
             // Commit status on the PR head; this is the required check that blocks merging.
+            // A commit the bot just pushed to a fork isn't visible from this repo for a few seconds
+            // (422 "No commit found"), so retry. If it still fails, the comment is posted anyway and
+            // the run that the bot's push starts sets the status on the new head.
             const state = !check ? 'error' : violations.length ? 'failure' : 'success';
-            await github.rest.repos.createCommitStatus({
-              ...context.repo,
-              sha: env.SHA,
-              state,
-              context: 'asset-size-check',
-              target_url: runUrl,
-              description: !check
-                ? 'Size validation did not run'
-                : violations.length
-                  ? `${violations.length} asset(s) over the size limit`
-                  : `${check.assets.length} changed asset(s) within limits`,
-            });
+            let statusError = null;
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              try {
+                await github.rest.repos.createCommitStatus({
+                  ...context.repo,
+                  sha: env.SHA,
+                  state,
+                  context: 'asset-size-check',
+                  target_url: runUrl,
+                  description: !check
+                    ? 'Size validation did not run'
+                    : violations.length
+                      ? `${violations.length} asset(s) over the size limit`
+                      : `${check.assets.length} changed asset(s) within limits`,
+                });
+                statusError = null;
+                break;
+              } catch (error) {
+                statusError = error;
+                if (error.status !== 422 || attempt === 6) break;
+                await new Promise((resolve) => setTimeout(resolve, 5000));
+              }
+            }
+            const reportStatusError = () => {
+              if (!statusError) return;
+              if (env.FORK === 'true' && statusError.status === 422)
+                return core.warning(`Could not set the status on ${env.SHA}; the run for the bot commit will set it.`);
+              throw statusError;
+            };
 
             const optimizeFailed = env.OPTIMIZE === 'true' && !optimized;
             const hasTable = optimized?.length > 0;
@@ -309,7 +329,7 @@ jobs:
             const existing = comments.find(
               (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(MARKER),
             );
-            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && env.COMMENTED !== 'true') return;
+            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && env.COMMENTED !== 'true') return reportStatusError();
 
             // The optimization section changes only when this run optimized (or tried to). Otherwise
             // keep what the last run wrote, so a later validation-only run doesn't erase the table.
@@ -367,9 +387,12 @@ jobs:
               for (const v of violations) body += `| \`${v.file}\` | ${fmt(v.size)} | ${fmt(v.limit)} |\n`;
               body += env.FORK === 'true' && env.COMMENTED !== 'true'
                 ? '\nA maintainer can comment `/optimize-assets` to compress these. Anything still over the limit after that must be trimmed (shorter clip, smaller crop, MP4 instead of GIF).\n'
-                : '\nThese are still over the limit after optimization. Trim them (shorter clip, smaller crop, MP4 instead of GIF) and push again.\n';
+                : env.OPTIMIZE === 'true' || hasTable
+                  ? '\nThese are still over the limit after optimization. Trim them (shorter clip, smaller crop, MP4 instead of GIF) and push again.\n'
+                  : '\nTrim them (shorter clip, smaller crop, MP4 instead of GIF) and push again.\n';
             }
             body += `\n<sub>Checked commit ${env.SHA.slice(0, 7)}</sub>\n`;
 
             if (!existing) await github.rest.issues.createComment({ ...context.repo, issue_number, body });
             else if (existing.body !== body) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            reportStatusError();
