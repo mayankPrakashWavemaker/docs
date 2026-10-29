@@ -23,8 +23,11 @@ name: Assets
 #
 # When it runs on a PR into a collection branch:
 #   - PRs from branches in this repo: every push → optimize + validate.
-#   - PRs from forks: every push → validate only. Someone with write access comments
-#     `/optimize-assets` → optimize + validate. The fork must allow edits by maintainers.
+#   - PRs from forks of people with write access (checked through the GitHub API, never from commit
+#     emails): same as above. The fork must allow edits by maintainers.
+#   - PRs from any other fork: every push → validate only, plus a warning on the PR if assets are
+#     not optimized. Someone with write access comments `/optimize-assets` → optimize + validate.
+#     The fork must allow edits by maintainers.
 # The bot never pushes to `main`, `prod`, or a collection branch, so a comment on a PR whose head is
 # one of those (such as a collection branch merging into `main`) does nothing.
 #
@@ -101,7 +104,21 @@ jobs:
             if (!isFork && PROTECTED_BRANCHES.includes(pr.head.ref)) {
               return core.notice(`The bot does not push to ${pr.head.ref}; ignoring.`);
             }
-            let optimize = commented || !isFork;
+            // A fork PR from someone with write access (and from their own fork) is as trusted as a
+            // branch in this repo, so it is optimized without a comment. This asks GitHub for the
+            // author's role; commit emails are free text and prove nothing.
+            let trusted = false;
+            if (isFork && !commented && pr.head.repo.owner.login === pr.user.login) {
+              try {
+                const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                  owner, repo, username: pr.user.login,
+                });
+                trusted = ['admin', 'write'].includes(data.permission);
+              } catch (error) {
+                core.warning(`Could not check the permission of ${pr.user.login}: ${error.message}`);
+              }
+            }
+            let optimize = commented || !isFork || trusted;
             let note = '';
             if (optimize && process.env.HAS_BOT_TOKEN !== 'true') {
               optimize = false;
@@ -178,6 +195,7 @@ jobs:
           if node ../trusted/scripts/assets/pending.mjs --base "$OPT_BASE" \
               --trailers-from "upstream/${BASE_REF}" --report "$RUNNER_TEMP/pending.json"; then
             PENDING=$(node -p "require(process.argv[1]).pending" "$RUNNER_TEMP/pending.json")
+            echo "pending=${PENDING}" >> "$GITHUB_OUTPUT"
           fi
           if [ "$OPTIMIZE" = "true" ] && [ "$PENDING" -gt 0 ]; then
             echo "optimize=true" >> "$GITHUB_OUTPUT"
@@ -255,6 +273,8 @@ jobs:
           COMMENTED: ${{ steps.pr.outputs.commented }}
           FORK: ${{ steps.pr.outputs.fork }}
           NOTE: ${{ steps.pr.outputs.note }}
+          PR_OPTIMIZE: ${{ steps.pr.outputs.optimize }}
+          PENDING: ${{ steps.scan.outputs.pending }}
           COVERED: ${{ steps.scan.outputs.covered }}
           RETRIED: ${{ steps.scan.outputs.retried }}
           OPTIMIZE: ${{ steps.scan.outputs.optimize }}
@@ -336,7 +356,11 @@ jobs:
             const existing = comments.find(
               (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(MARKER),
             );
-            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && env.COMMENTED !== 'true') return reportStatusError();
+            // Fork PRs from people without write access aren't optimized until a maintainer comments;
+            // say so instead of leaving the contributor with a green check and unoptimized files.
+            const unoptimized = env.FORK === 'true' && env.COMMENTED !== 'true' && env.PR_OPTIMIZE !== 'true'
+              ? Number(env.PENDING) || 0 : 0;
+            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && !unoptimized && env.COMMENTED !== 'true') return reportStatusError();
 
             // The optimization section changes only when this run optimized (or tried to). Otherwise
             // keep what the last run wrote, so a later validation-only run doesn't erase the table.
@@ -375,6 +399,11 @@ jobs:
 
             let body = `${MARKER}\n### Asset pipeline\n\n`;
             if (env.NOTE) body += `> ${env.NOTE}\n\n`;
+            if (unoptimized)
+              body +=
+                '> [!WARNING]\n' +
+                `> ${unoptimized} changed asset(s) were **not optimized**. Pull requests from forks are optimized only after a maintainer comments \`/optimize-assets\` (**Allow edits by maintainers** must be on). ` +
+                'To skip the wait, run `npm install` so the pre-commit hook optimizes assets as you commit, or run `npm run optimize-assets`, then push again.\n\n';
             const covered = Number(env.COVERED) || 0;
             const retried = Number(env.RETRIED) || 0;
             if (covered)
