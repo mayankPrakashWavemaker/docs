@@ -443,14 +443,23 @@ jobs:
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${AUTH}"
-          if git -c core.hooksPath=/dev/null push origin "HEAD:refs/heads/${HEAD_REF}"; then
-            echo "result=pushed" >> "$GITHUB_OUTPUT"
-          else
-            # The branch moved during the run. Validate what the PR holds now; the author's next
-            # push starts a new run.
-            git reset -q --hard HEAD~1
-            echo "result=failed" >> "$GITHUB_OUTPUT"
-          fi
+          # A push rejected because the branch moved is final for this run (result=failed): validate
+          # what the PR holds now; the author's next push starts a new run. Any other failure is
+          # retried twice (GitHub itself answered "fatal error in commit_refs" once in the fork
+          # tests) and then reported as result=error, so the status cannot pass silently.
+          result=error
+          for attempt in 1 2 3; do
+            if out=$(git -c core.hooksPath=/dev/null push origin "HEAD:refs/heads/${HEAD_REF}" 2>&1); then
+              result=pushed; break
+            fi
+            echo "$out"
+            if printf '%s' "$out" | grep -qE 'non-fast-forward|fetch first|stale info'; then
+              result=failed; break
+            fi
+            [ "$attempt" -lt 3 ] && sleep "${PUSH_RETRY_DELAY:-10}"
+          done
+          if [ "$result" != "pushed" ]; then git reset -q --hard HEAD~1; fi
+          echo "result=${result}" >> "$GITHUB_OUTPUT"
 
       # The optimization table in the comment is rebuilt from the PR's bot commits on every run (see
       # scripts/assets/history.mjs), so it never depends on what an earlier comment said. If this step
@@ -531,12 +540,14 @@ jobs:
             // error, never a silent pass.
             const optimizeFailed =
               env.OPTIMIZE === 'true' && (env.DECODE_RESULT !== 'success' || env.APPLY_STATE !== 'ok');
+            // The files were optimized but GitHub refused them three times (not a branch race).
+            const pushFailed = env.PUSH_RESULT === 'error';
 
             // Commit status on the PR head; this is the required check that blocks merging.
             // A commit the bot just pushed to a fork isn't visible from this repo for a few seconds
             // (422 "No commit found"), so retry. If it still fails, the comment is posted anyway and
             // the run that the bot's push starts sets the status on the new head.
-            const state = optimizeFailed || !check ? 'error' : violations.length ? 'failure' : 'success';
+            const state = optimizeFailed || pushFailed || !check ? 'error' : violations.length ? 'failure' : 'success';
             let statusError = null;
             for (let attempt = 1; attempt <= 6; attempt++) {
               try {
@@ -548,6 +559,8 @@ jobs:
                   target_url: runUrl,
                   description: optimizeFailed
                     ? 'Optimization did not run'
+                    : pushFailed
+                    ? 'Optimized files could not be pushed'
                     : !check
                     ? 'Size validation did not run'
                     : violations.length
@@ -627,6 +640,8 @@ jobs:
                     'and stay available as long as nobody force-pushes over the bot commit.\n';
                 if (env.PUSH_RESULT === 'failed')
                   opt += '\n⚠️ Could not push: the branch changed during the run. The next push re-runs the pipeline.\n';
+                if (pushFailed)
+                  opt += '\n⚠️ Could not push the optimized files: GitHub refused the push three times. Comment `/optimize-assets` to try again.\n';
               }
             } else if (hasTable) {
               opt = '#### Optimization\n\n| File | Before | After |\n|---|---:|---|\n';
