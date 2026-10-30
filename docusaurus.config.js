@@ -303,3 +303,5 @@ const config = {
 };
 
 export default config;
+
+// a comment that changes the config, not any pointer
