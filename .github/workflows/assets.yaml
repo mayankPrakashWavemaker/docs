@@ -33,6 +33,10 @@ name: Assets
 # The bot never pushes to `main`, `prod`, or a collection branch, so a comment on a PR whose head is
 # one of those (such as a collection branch merging into `main`) does nothing.
 #
+# `/optimize-assets force [name-or-path ...]` (write access) optimizes assets the hook's trailers
+# say were kept as is: with names (for example `force demo.mp4`, matched against the end of each
+# changed file's path) only those files, with none every changed asset of the PR.
+#
 # Assets the contributor already handled with the pre-commit hook (scripts/assets/precommit.mjs) are
 # not optimized again. The hook records optimized, reviewed (kept as is), and failed assets as
 # `Assets-*` trailers in the commit message, tied to each file's blob id. Only files whose current
@@ -146,8 +150,19 @@ jobs:
               note = `Optimization skipped: @${pr.user.login}, please enable **Allow edits by maintainers** on this PR, then a maintainer can comment \`/optimize-assets\` again.`;
             }
 
+            // "/optimize-assets force [name-or-path ...]" optimizes even assets the contributor kept as
+            // is (the pre-commit hook's trailers). Names select by the end of the path, so
+            // "demo.mp4" is enough; with none, every changed asset of the PR is optimized again.
+            // Only the first line is read, and the text is only ever matched against file paths in Node,
+            // never run in a shell.
+            const words = commented ? context.payload.comment.body.trim().split('\n')[0].trim().split(/\s+/) : [];
+            const force = optimize && words[0] === '/optimize-assets' && words[1]?.toLowerCase() === 'force';
+            const forceOnly = force ? words.slice(2).filter((w) => w.length <= 300).slice(0, 50) : [];
+
             core.setOutput('number', number);
             core.setOutput('commented', String(commented));
+            core.setOutput('force', String(force));
+            core.setOutput('force_only', JSON.stringify(forceOnly));
             core.setOutput('fork', String(isFork));
             core.setOutput('optimize', String(optimize));
             core.setOutput('note', note);
@@ -195,6 +210,8 @@ jobs:
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
           OPTIMIZE: ${{ steps.pr.outputs.optimize }}
+          FORCE: ${{ steps.pr.outputs.force }}
+          FORCE_ONLY: ${{ steps.pr.outputs.force_only }}
         run: |
           git fetch --no-tags --filter=blob:none "https://github.com/${GITHUB_REPOSITORY}.git" \
             "+refs/heads/${BASE_REF}:refs/remotes/upstream/${BASE_REF}"
@@ -202,6 +219,13 @@ jobs:
           # files aren't re-encoded on every push (this also makes the bot's own push a no-op).
           BOT_COMMIT=$(git log -1 --format=%H -F --grep='[asset-bot]' "upstream/${BASE_REF}..HEAD")
           OPT_BASE="${BOT_COMMIT:-upstream/${BASE_REF}}"
+          # A forced run looks at every changed asset of the PR (not only what came after the bot's
+          # last commit) and ignores the hook's trailers; FORCE_ONLY can narrow it to named files.
+          SCAN_ARGS=(--trailers-from "upstream/${BASE_REF}")
+          if [ "$FORCE" = "true" ]; then
+            OPT_BASE="upstream/${BASE_REF}"
+            SCAN_ARGS=(--force --only-json "$FORCE_ONLY")
+          fi
           echo "opt_base=${OPT_BASE}" >> "$GITHUB_OUTPUT"
           # Skip assets the contributor's pre-commit hook already optimized or reviewed. The hook
           # records that in commit-message trailers, each tied to the file's exact content (blob id),
@@ -211,7 +235,7 @@ jobs:
           # failure shows up in the PR comment instead of optimization silently turning off.
           PENDING=1
           if node ../trusted/scripts/assets/pending.mjs --base "$OPT_BASE" \
-              --trailers-from "upstream/${BASE_REF}" --report "$RUNNER_TEMP/pending.json"; then
+              "${SCAN_ARGS[@]}" --report "$RUNNER_TEMP/pending.json"; then
             PENDING=$(node -p "require(process.argv[1]).pending" "$RUNNER_TEMP/pending.json")
             echo "pending=${PENDING}" >> "$GITHUB_OUTPUT"
           fi
@@ -244,9 +268,13 @@ jobs:
         env:
           OPT_BASE: ${{ steps.scan.outputs.opt_base }}
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          FORCE: ${{ steps.pr.outputs.force }}
+          FORCE_ONLY: ${{ steps.pr.outputs.force_only }}
         run: |
+          SCAN_ARGS=(--trailers-from "upstream/${BASE_REF}")
+          if [ "$FORCE" = "true" ]; then SCAN_ARGS=(--force --only-json "$FORCE_ONLY"); fi
           node "$RUNNER_TEMP/optimizer/optimize.mjs" --base "$OPT_BASE" \
-            --trailers-from "upstream/${BASE_REF}" --report "$RUNNER_TEMP/optimize.json"
+            "${SCAN_ARGS[@]}" --report "$RUNNER_TEMP/optimize.json"
 
       - name: Commit and push
         id: push
@@ -294,6 +322,8 @@ jobs:
           PR_OPTIMIZE: ${{ steps.pr.outputs.optimize }}
           PENDING: ${{ steps.scan.outputs.pending }}
           COVERED: ${{ steps.scan.outputs.covered }}
+          FORCE: ${{ steps.pr.outputs.force }}
+          FORCE_ONLY: ${{ steps.pr.outputs.force_only }}
           RETRIED: ${{ steps.scan.outputs.retried }}
           OPTIMIZE: ${{ steps.scan.outputs.optimize }}
           OPTIMIZE_OUTCOME: ${{ steps.optimize.outcome }}
@@ -430,6 +460,12 @@ jobs:
             }
             if (!opt && env.COMMENTED === 'true' && env.OPTIMIZE !== 'true' && !env.NOTE)
               opt = '#### Optimization\n\nNo new or changed assets to optimize.\n';
+            // A forced run that found nothing should say why, not leave a stale or empty section.
+            const forceOnly = env.FORCE === 'true' ? JSON.parse(env.FORCE_ONLY || '[]') : null;
+            if (forceOnly && !hasTable && !optimizeFailed && env.OPTIMIZE !== 'true') {
+              const what = forceOnly.length ? forceOnly.map((n) => `\`${cell(n)}\``).join(', ') : 'any changed asset';
+              opt = `#### Optimization\n\nForced run: no changed asset matched ${what} in this PR. Use a file name or the end of its path, for example \`/optimize-assets force demo.mp4\`.\n`;
+            }
 
             let body = `${MARKER}\n### Asset pipeline\n\n`;
             if (env.NOTE) body += `> ${env.NOTE}\n\n`;
@@ -442,6 +478,8 @@ jobs:
             const retried = Number(env.RETRIED) || 0;
             if (covered)
               body += `> ${covered} changed asset(s) were already optimized or reviewed locally by the pre-commit hook (recorded in the commit messages), so they were left as is.\n\n`;
+            if (forceOnly && (hasTable || env.OPTIMIZE === 'true'))
+              body += `> Forced run: ${forceOnly.length ? forceOnly.map((n) => `\`${cell(n)}\``).join(', ') : 'every changed asset'} optimized even if reviewed locally. An asset is replaced only when the result is at least 10% smaller.\n\n`;
             if (retried && env.OPTIMIZE === 'true')
               body += `> Local optimization failed for ${retried} asset(s), so they were optimized here instead.\n\n`;
             if (opt) body += `${OPT_START}\n${opt}${OPT_END}\n\n`;

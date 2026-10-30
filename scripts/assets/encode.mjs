@@ -164,6 +164,11 @@ function optimizeVideo(file) {
       // sharp already strips the equivalent from images.
       '-map_metadata',
       '-1',
+      // Keep the source's variable frame rate. The default pads screen recordings to a constant
+      // 60 fps with duplicated frames (1,900 frames became 3,500), which slows the encode and
+      // gives the rate control duplicates to spend bits on.
+      '-vsync',
+      'vfr',
       // Round the width down to even: yuv420p needs even dimensions, so an odd-width source
       // narrower than the cap would otherwise fail to encode.
       '-vf',

@@ -11,10 +11,28 @@ export function parseArgs(argv) {
     else if (arg === '--local') args.local = true;
     else if (arg === '--force') args.force = true;
     else if (arg === '--trailers-from') args.trailersFrom = argv[++i];
+    // JSON array of file names or paths: only changed assets matching one of them are processed.
+    else if (arg === '--only-json') args.only = parseOnly(argv[++i]);
     else if (arg.startsWith('--')) args[arg.slice(2)] = argv[++i];
     else args.files.push(arg);
   }
   return args;
+}
+
+function parseOnly(json) {
+  const list = JSON.parse(json || '[]');
+  if (!Array.isArray(list) || list.some((item) => typeof item !== 'string'))
+    throw new Error('--only-json expects a JSON array of strings');
+  return list;
+}
+
+// A name or path selects a file when it is the whole path or its trailing part, so
+// "demo.mp4" and "vids/demo.mp4" both match "docs/x/assets/vids/demo.mp4".
+function selects(only, file) {
+  return only.some((item) => {
+    const name = item.replace(/^\.?\//, '');
+    return name && (file === name || file.endsWith(`/${name}`));
+  });
 }
 
 // Asset files whose content is new between the merge base of `base` and `head`, split into
@@ -24,7 +42,18 @@ export function parseArgs(argv) {
 //   retried: pending files the hook reported as failed
 // Moved or copied files whose blob already exists at the merge base are skipped: they add nothing
 // to history, and re-encoding them would add a second blob.
-export function classifyAssets({ base, head, files, trailersFrom }) {
+//
+// `force` ignores the trailers, so assets the contributor kept as is are pending too. `only`
+// (names or paths) limits the result to the matching assets; it is how a maintainer asks for one
+// file to be optimized again.
+export function classifyAssets({
+  base,
+  head,
+  files,
+  trailersFrom,
+  force,
+  only,
+}) {
   if (files.length)
     return { pending: toAssets(files), covered: [], retried: 0 };
 
@@ -40,8 +69,11 @@ export function classifyAssets({ base, head, files, trailersFrom }) {
   )
     .split('\0')
     .filter((file) => file && !existing.has(headBlobs.get(file)));
-  const assets = toAssets(paths);
-  if (!trailersFrom) return { pending: assets, covered: [], retried: 0 };
+  const assets = toAssets(paths).filter(
+    ({ file }) => !only?.length || selects(only, file),
+  );
+  if (!trailersFrom || force)
+    return { pending: assets, covered: [], retried: 0 };
 
   const { done, failed } = processedBlobs(`${trailersFrom}..${head}`);
   const pending = [];
