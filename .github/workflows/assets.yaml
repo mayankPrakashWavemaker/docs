@@ -410,7 +410,23 @@ jobs:
             } else if (existing) {
               const i = existing.body.indexOf(OPT_START);
               const j = existing.body.indexOf(OPT_END);
-              if (i !== -1 && j > i) opt = existing.body.slice(i + OPT_START.length, j).trim() + '\n';
+              if (i !== -1 && j > i) {
+                let kept = existing.body.slice(i + OPT_START.length, j).trim();
+                // A file that changed after that table was written (kept as is by the hook, or
+                // waiting to be optimized) must not keep its old "before -> after" row: the row
+                // would claim a size the file no longer has. Drop those rows, and the whole
+                // section when none are left.
+                const scan = readJson('pending.json');
+                const stale = new Set([...(scan?.covered ?? []), ...(scan?.pendingFiles ?? [])]);
+                if (stale.size) {
+                  const lines = kept.split('\n').filter((l) => {
+                    const m = l.match(/^\| `(.+?)` \|/);
+                    return !(m && stale.has(m[1]));
+                  });
+                  kept = lines.some((l) => l.startsWith('| `')) ? lines.join('\n') : '';
+                }
+                if (kept) opt = kept + '\n';
+              }
             }
             if (!opt && env.COMMENTED === 'true' && env.OPTIMIZE !== 'true' && !env.NOTE)
               opt = '#### Optimization\n\nNo new or changed assets to optimize.\n';

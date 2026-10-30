@@ -23,6 +23,7 @@ if (args.report)
     JSON.stringify(
       {
         pending: pending.length,
+        pendingFiles: pending.map((a) => a.file),
         covered: covered.map((a) => a.file),
         retried,
       },
