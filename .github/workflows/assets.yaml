@@ -93,8 +93,9 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: read
-      issues: write # the "eyes" reaction on the command comment
+      # Write, not read: the "eyes" reaction on a command comment on a PR needs it (a run with only
+      # `pull-requests: read` and `issues: write` was rejected with 403).
+      pull-requests: write
     outputs:
       proceed: ${{ steps.pr.outputs.proceed }}
       number: ${{ steps.pr.outputs.number }}
@@ -129,9 +130,15 @@ jobs:
               if (!['admin', 'write'].includes(data.permission)) {
                 return core.notice(`${context.payload.comment.user.login} lacks write access; ignoring.`);
               }
-              await github.rest.reactions.createForIssueComment({
-                owner, repo, comment_id: context.payload.comment.id, content: 'eyes',
-              });
+              // The reaction only tells the commenter the command was seen; failing to add it must not
+              // stop the command itself.
+              try {
+                await github.rest.reactions.createForIssueComment({
+                  owner, repo, comment_id: context.payload.comment.id, content: 'eyes',
+                });
+              } catch (error) {
+                core.warning(`Could not add the reaction: ${error.message}`);
+              }
             }
 
             const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
