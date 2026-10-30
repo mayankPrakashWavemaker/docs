@@ -150,6 +150,7 @@ function sanitizeResults(results, allowed) {
       replaced: r.replaced === true,
     };
     if (typeof r.error === 'string' && r.error) entry.error = clean(r.error, 300);
+    if (typeof r.note === 'string' && r.note) entry.note = clean(r.note, 100);
     out.push(entry);
   }
   return out;
