@@ -307,13 +307,17 @@ jobs:
           node ../trusted/scripts/assets/pack-artifact.mjs --out "$RUNNER_TEMP/asset-artifact" \
             --head-sha "$HEAD_SHA" --report "$RUNNER_TEMP/optimize.json"
 
+      # Named by run only, not by attempt: "Re-run failed jobs" re-runs publish alone, as a new attempt,
+      # and it must still find the artifact this run's decode job made. A full re-run uploads again,
+      # hence overwrite.
       - name: Upload the artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: asset-optimized-${{ github.run_id }}-${{ github.run_attempt }}
+          name: asset-optimized-${{ github.run_id }}
           path: ${{ runner.temp }}/asset-artifact
           retention-days: 1
           if-no-files-found: error
+          overwrite: true
 
   publish:
     needs: [resolve, decode]
@@ -378,13 +382,24 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: asset-optimized-${{ github.run_id }}-${{ github.run_attempt }}
+          name: asset-optimized-${{ github.run_id }}
+          path: ${{ runner.temp }}/asset-artifact
+
+      # The action retries internally, but a blob-storage outage can outlast that (seen once in the
+      # fork tests). One more attempt costs nothing when the first worked, because it is skipped.
+      - name: Download the optimizer's output (second attempt)
+        id: download_retry
+        if: steps.download.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: asset-optimized-${{ github.run_id }}
           path: ${{ runner.temp }}/asset-artifact
 
       # Untrusted data in, checked files out. See scripts/assets/apply-artifact.mjs.
       - name: Check and apply the optimized files
         id: apply
-        if: steps.download.outcome == 'success'
+        if: steps.download.outcome == 'success' || steps.download_retry.outcome == 'success'
         working-directory: pr
         env:
           GIT_CONFIG_NOSYSTEM: '1'
