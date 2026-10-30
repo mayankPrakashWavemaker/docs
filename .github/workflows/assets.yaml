@@ -270,10 +270,6 @@ jobs:
           FORCE_ONLY: ${{ needs.resolve.outputs.force_only }}
         run: bash ../trusted/scripts/assets/scan.sh
 
-      - name: TEST ONLY fail the decode job
-        if: contains(github.event.pull_request.title, '[fail-decode]')
-        run: exit 1
-
       - name: Install optimizers
         if: steps.scan.outputs.optimize == 'true'
         run: |
@@ -379,10 +375,6 @@ jobs:
           FORCE: ${{ needs.resolve.outputs.force }}
           FORCE_ONLY: ${{ needs.resolve.outputs.force_only }}
         run: bash ../trusted/scripts/assets/scan.sh
-
-      - name: TEST ONLY fail the first attempt of the publish job
-        if: github.run_attempt == 1 && contains(github.event.pull_request.title, '[fail-publish]')
-        run: exit 1
 
       - name: Download the optimizer's output
         id: download
