@@ -300,6 +300,19 @@ jobs:
             echo "result=failed" >> "$GITHUB_OUTPUT"
           fi
 
+      # The optimization table in the comment is rebuilt from the PR's bot commits on every run (see
+      # scripts/assets/history.mjs), so it never depends on what an earlier comment said. If this step
+      # fails, the Report step keeps the comment's existing table.
+      - name: Optimization history
+        id: history
+        if: always() && steps.scan.outcome == 'success'
+        working-directory: pr
+        env:
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        run: |
+          node ../trusted/scripts/assets/history.mjs --base "upstream/${BASE_REF}" \
+            --report "$RUNNER_TEMP/history.json" || echo "::warning::Could not read the optimization history; the comment keeps its existing table."
+
       - name: Validate sizes
         id: validate
         if: always() && steps.scan.outcome == 'success'
@@ -328,8 +341,6 @@ jobs:
           OPTIMIZE: ${{ steps.scan.outputs.optimize }}
           OPTIMIZE_OUTCOME: ${{ steps.optimize.outcome }}
           PUSH_RESULT: ${{ steps.push.outputs.result }}
-          ORIGINAL_SHA: ${{ steps.push.outputs.original_sha }}
-          BOT_SHA: ${{ steps.push.outputs.bot_sha }}
           SHA: ${{ steps.validate.outputs.sha || steps.pr.outputs.head_sha }}
         with:
           script: |
@@ -343,15 +354,16 @@ jobs:
             const cell = (text) =>
               text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                 .replace(/\|/g, '&#124;').replace(/\n/g, '<br>');
+            // File names come from the PR. A backtick, pipe or angle bracket in one would break out
+            // of the table cell or the code span, so those are written as escaped <code> instead.
+            const fileCell = (file) => (/[`|<>&\n]/.test(file) ? `<code>${cell(file)}</code>` : `\`${file}\``);
             const repoUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`;
             const runUrl = `${repoUrl}/actions/runs/${context.runId}`;
             // Originals stay reachable through this PR's ref (refs/pull/N/head) as the parent of the
             // bot commit. Links point at the base repo so they keep working if a fork is deleted.
-            const pushed = env.PUSH_RESULT === 'pushed';
-            const originalUrl = (file) =>
-              `${repoUrl}/blob/${env.ORIGINAL_SHA}/${file.split('/').map(encodeURIComponent).join('/')}`;
 
             const optimized = readJson('optimize.json');
+            const history = readJson('history.json');
             const check = readJson('check.json');
             const violations = check ? check.assets.filter((a) => !a.ok) : [];
 
@@ -408,63 +420,68 @@ jobs:
             // say so instead of leaving the contributor with a green check and unoptimized files.
             const unoptimized = env.FORK === 'true' && env.COMMENTED !== 'true' && env.PR_OPTIMIZE !== 'true'
               ? Number(env.PENDING) || 0 : 0;
-            if (!existing && !hasTable && !optimizeFailed && state === 'success' && !env.NOTE && !unoptimized && env.COMMENTED !== 'true') return reportStatusError();
+            if (!existing && !hasTable && !history?.rows.length && !optimizeFailed && state === 'success' && !env.NOTE && !unoptimized && env.COMMENTED !== 'true') return reportStatusError();
 
-            // The optimization section changes only when this run optimized (or tried to). Otherwise
-            // keep what the last run wrote, so a later validation-only run doesn't erase the table.
+            // The optimization section lists what the PR's bot commits did, read from git by the
+            // "Optimization history" step: for each file, the copy the author last added against the
+            // optimized copy the PR holds now. Rows for files that changed since are already left out.
+            // This run's own results fill in what never reached a commit (already optimized, failed).
+            // If that step failed, keep the existing section instead.
+            const short = (sha) => sha.slice(0, 7);
+            const blobUrl = (sha, file) =>
+              `${repoUrl}/blob/${sha}/${file.split('/').map(encodeURIComponent).join('/')}`;
+            const saved = (before, after) => `${fmt(after)} (−${Math.round((1 - after / before) * 100)}%)`;
+            const unique = (list) => [...new Set(list)];
             let opt = null;
-            if (hasTable) {
+            if (optimizeFailed) {
+              opt = `#### Optimization\n\n⚠️ The optimizer could not run. [View logs](${runUrl})\n`;
+            } else if (history) {
+              const rows = history.rows.map(
+                (h) => `| ${fileCell(h.file)} | [${fmt(h.before)}](${blobUrl(h.original, h.file)}) | ${saved(h.before, h.after)} |`,
+              );
+              const listed = new Set(history.rows.map((h) => h.file));
+              for (const r of optimized ?? []) {
+                if (listed.has(r.file)) continue;
+                // A replaced file missing from the history is one whose push failed.
+                const after = r.error
+                  ? `⚠️ failed<br><code>${cell(r.error)}</code>`
+                  : r.replaced ? saved(r.before, r.after) : `${fmt(r.after)} (already optimized)`;
+                rows.push(`| ${fileCell(r.file)} | ${fmt(r.before)} | ${after} |`);
+              }
+              if (rows.length) {
+                opt = '#### Optimization\n\n| File | Before | After |\n|---|---:|---|\n' + rows.join('\n') + '\n';
+                const commits = unique(history.rows.flatMap((h) => h.commits));
+                const originals = unique(history.rows.map((h) => h.original));
+                if (commits.length)
+                  opt +=
+                    `\nCommitted as ${commits.map((c) => `[\`${short(c)}\`](${repoUrl}/commit/${c})`).join(', ')}. ` +
+                    'Pull before pushing again, and give the optimized media a quick visual check.\n' +
+                    `\nOriginals: ${originals.map((o) => `[\`${short(o)}\`](${repoUrl}/tree/${o})`).join(', ')} ` +
+                    '(click a "Before" size to open that file). They live only in this PR\'s history, not in the branch it merges into, ' +
+                    'and stay available as long as nobody force-pushes over the bot commit.\n';
+                if (env.PUSH_RESULT === 'failed')
+                  opt += '\n⚠️ Could not push: the branch changed during the run. The next push re-runs the pipeline.\n';
+              }
+            } else if (hasTable) {
               opt = '#### Optimization\n\n| File | Before | After |\n|---|---:|---|\n';
               for (const r of optimized) {
                 const after = r.error
                   ? `⚠️ failed<br><code>${cell(r.error)}</code>`
-                  : r.replaced
-                    ? `${fmt(r.after)} (−${Math.round((1 - r.after / r.before) * 100)}%)`
-                    : `${fmt(r.after)} (already optimized)`;
-                const before = pushed && r.replaced ? `[${fmt(r.before)}](${originalUrl(r.file)})` : fmt(r.before);
-                opt += `| \`${r.file}\` | ${before} | ${after} |\n`;
+                  : r.replaced ? saved(r.before, r.after) : `${fmt(r.after)} (already optimized)`;
+                opt += `| ${fileCell(r.file)} | ${fmt(r.before)} | ${after} |\n`;
               }
-              if (pushed) {
-                const short = (sha) => sha.slice(0, 7);
-                opt +=
-                  `\nCommitted as [\`${short(env.BOT_SHA)}\`](${repoUrl}/commit/${env.BOT_SHA}). ` +
-                  'Pull before pushing again, and give the optimized media a quick visual check.\n' +
-                  `\nOriginals: [\`${short(env.ORIGINAL_SHA)}\`](${repoUrl}/tree/${env.ORIGINAL_SHA}) ` +
-                  '(click a "Before" size to open that file). They live only in this PR\'s history, not in the branch it merges into, ' +
-                  'and stay available as long as nobody force-pushes over the bot commit.\n';
-              } else if (env.PUSH_RESULT === 'failed') {
-                opt += '\n⚠️ Could not push: the branch changed during the run. The next push re-runs the pipeline.\n';
-              }
-            } else if (optimizeFailed) {
-              opt = `#### Optimization\n\n⚠️ The optimizer could not run. [View logs](${runUrl})\n`;
             } else if (existing) {
               const i = existing.body.indexOf(OPT_START);
               const j = existing.body.indexOf(OPT_END);
-              if (i !== -1 && j > i) {
-                let kept = existing.body.slice(i + OPT_START.length, j).trim();
-                // A file that changed after that table was written (kept as is by the hook, or
-                // waiting to be optimized) must not keep its old "before -> after" row: the row
-                // would claim a size the file no longer has. Drop those rows, and the whole
-                // section when none are left.
-                const scan = readJson('pending.json');
-                const stale = new Set([...(scan?.covered ?? []), ...(scan?.pendingFiles ?? [])]);
-                if (stale.size) {
-                  const lines = kept.split('\n').filter((l) => {
-                    const m = l.match(/^\| `(.+?)` \|/);
-                    return !(m && stale.has(m[1]));
-                  });
-                  kept = lines.some((l) => l.startsWith('| `')) ? lines.join('\n') : '';
-                }
-                if (kept) opt = kept + '\n';
-              }
+              if (i !== -1 && j > i) opt = existing.body.slice(i + OPT_START.length, j).trim() + '\n';
             }
             if (!opt && env.COMMENTED === 'true' && env.OPTIMIZE !== 'true' && !env.NOTE)
               opt = '#### Optimization\n\nNo new or changed assets to optimize.\n';
-            // A forced run that found nothing should say why, not leave a stale or empty section.
+            // A forced run that found nothing should say why. The message goes under the table.
             const forceOnly = env.FORCE === 'true' ? JSON.parse(env.FORCE_ONLY || '[]') : null;
             if (forceOnly && !hasTable && !optimizeFailed && env.OPTIMIZE !== 'true') {
               const what = forceOnly.length ? forceOnly.map((n) => `\`${cell(n)}\``).join(', ') : 'any changed asset';
-              opt = `#### Optimization\n\nForced run: no changed asset matched ${what} in this PR. Use a file name or the end of its path, for example \`/optimize-assets force demo.mp4\`.\n`;
+              opt = `${opt ?? '#### Optimization\n'}\nForced run: no changed asset matched ${what} in this PR. Use a file name or the end of its path, for example \`/optimize-assets force demo.mp4\`.\n`;
             }
 
             let body = `${MARKER}\n### Asset pipeline\n\n`;
@@ -492,7 +509,7 @@ jobs:
             } else {
               body += `❌ ${violations.length} asset(s) over the limit. Limits: ${check.limits}\n\n`;
               body += '| File | Size | Limit |\n|---|---:|---:|\n';
-              for (const v of violations) body += `| \`${v.file}\` | ${fmt(v.size)} | ${fmt(v.limit)} |\n`;
+              for (const v of violations) body += `| ${fileCell(v.file)} | ${fmt(v.size)} | ${fmt(v.limit)} |\n`;
               body += env.FORK === 'true' && env.COMMENTED !== 'true'
                 ? '\nA maintainer can comment `/optimize-assets` to compress these. Anything still over the limit after that must be trimmed (shorter clip, smaller crop, MP4 instead of GIF).\n'
                 : env.OPTIMIZE === 'true' || hasTable
