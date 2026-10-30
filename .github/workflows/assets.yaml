@@ -212,38 +212,8 @@ jobs:
           OPTIMIZE: ${{ steps.pr.outputs.optimize }}
           FORCE: ${{ steps.pr.outputs.force }}
           FORCE_ONLY: ${{ steps.pr.outputs.force_only }}
-        run: |
-          git fetch --no-tags --filter=blob:none "https://github.com/${GITHUB_REPOSITORY}.git" \
-            "+refs/heads/${BASE_REF}:refs/remotes/upstream/${BASE_REF}"
-          # Only optimize changes since the bot's last optimization commit, so already-optimized
-          # files aren't re-encoded on every push (this also makes the bot's own push a no-op).
-          BOT_COMMIT=$(git log -1 --format=%H -F --grep='[asset-bot]' "upstream/${BASE_REF}..HEAD")
-          OPT_BASE="${BOT_COMMIT:-upstream/${BASE_REF}}"
-          # A forced run looks at every changed asset of the PR (not only what came after the bot's
-          # last commit) and ignores the hook's trailers; FORCE_ONLY can narrow it to named files.
-          SCAN_ARGS=(--trailers-from "upstream/${BASE_REF}")
-          if [ "$FORCE" = "true" ]; then
-            OPT_BASE="upstream/${BASE_REF}"
-            SCAN_ARGS=(--force --only-json "$FORCE_ONLY")
-          fi
-          echo "opt_base=${OPT_BASE}" >> "$GITHUB_OUTPUT"
-          # Skip assets the contributor's pre-commit hook already optimized or reviewed. The hook
-          # records that in commit-message trailers, each tied to the file's exact content (blob id),
-          # so a changed or unlisted file is still optimized. The trailers are untrusted PR input:
-          # they are parsed in Node by the trusted script and only yield numbers here.
-          # If the scan itself fails, assume there is work: the optimizer then runs, and its own
-          # failure shows up in the PR comment instead of optimization silently turning off.
-          PENDING=1
-          if node ../trusted/scripts/assets/pending.mjs --base "$OPT_BASE" \
-              "${SCAN_ARGS[@]}" --report "$RUNNER_TEMP/pending.json"; then
-            PENDING=$(node -p "require(process.argv[1]).pending" "$RUNNER_TEMP/pending.json")
-            echo "pending=${PENDING}" >> "$GITHUB_OUTPUT"
-          fi
-          if [ "$OPTIMIZE" = "true" ] && [ "$PENDING" -gt 0 ]; then
-            echo "optimize=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "optimize=false" >> "$GITHUB_OUTPUT"
-          fi
+        # The logic lives in a script so the decode and publish jobs can share it.
+        run: bash ../trusted/scripts/assets/scan.sh
 
       - name: Install optimizers
         id: install
